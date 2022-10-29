@@ -19,6 +19,8 @@ namespace Db
         }
 
         public DbSet<TwitchStreamer> TwitchStreamers => Set<TwitchStreamer>();
+        public DbSet<TwitchViewer> TwitchViewers => Set<TwitchViewer>();
+        public DbSet<TwitchMessage> TwitchMessages => Set<TwitchMessage>();
         public DbSet<Token> Tokens => Set<Token>();
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -47,10 +49,41 @@ namespace Db
                     .IsRequired()
                     .HasMaxLength(512);
 
+                entity.Property(e => e.DisplayName)
+                    .IsRequired()
+                    .HasMaxLength(512);
+
                 AddGenericFields<TwitchStreamer>(entity);
             });
             modelBuilder.Entity<TwitchStreamer>().HasIndex(t => new { t.Id }).IsUnique(true);
-            modelBuilder.Entity<TwitchStreamer>().HasIndex(t => new { t.Name }).HasFilter($"{nameof(TwitchStreamer.Deleted)} = 0").IsUnique(true);
+
+            modelBuilder.Entity<TwitchViewer>(entity =>
+            {
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(512);
+
+                entity.Property(e => e.DisplayName)
+                    .IsRequired()
+                    .HasMaxLength(512);
+
+                AddGenericFields<TwitchViewer>(entity);
+            });
+            modelBuilder.Entity<TwitchViewer>().HasIndex(t => new { t.Id }).IsUnique(true);
+
+            modelBuilder.Entity<TwitchMessage>(entity =>
+            {
+                entity.Property(e => e.Message)
+                    .IsRequired()
+                    .HasMaxLength(512);
+
+                entity.Property(e => e.Channel)
+                    .IsRequired()
+                    .HasMaxLength(512);
+
+                AddGenericFields<TwitchMessage>(entity);
+            });
+            modelBuilder.Entity<TwitchMessage>().HasIndex(t => new { t.Id }).IsUnique(true);
 
             Expression<Func<ISoftDeleteable, bool>> filterSoftDeleteable = bm => !bm.Deleted;
             Expression? filter = null;
@@ -85,7 +118,7 @@ namespace Db
         public void AddGenericFields<T>(EntityTypeBuilder entity)
         {
             entity.Property("Id")
-                  .HasMaxLength(512)
+                  
                   .IsRequired();
 
             if (typeof(ISoftDeleteable).IsAssignableFrom(typeof(T)))
@@ -101,6 +134,13 @@ namespace Db
                    .IsRequired();
 
                 entity.Property("LastModificationDateTime");
+            }
+
+            if (typeof(ITwitchOwnable).IsAssignableFrom(typeof(T)))
+            {
+                entity.Property("TwitchOwner")
+                    .HasMaxLength(20)
+                    .IsRequired();
             }
         }
 

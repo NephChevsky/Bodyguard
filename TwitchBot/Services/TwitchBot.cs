@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Db;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Models;
+using Models.Db;
 using NLog.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -14,35 +16,45 @@ namespace TwitchBot.Services
 	{
 		private Settings _settings;
 		private TwitchChat.TwitchChat _chat;
+		private TwitchApi.TwitchApi _api;
 		private readonly ILogger _logger;
-		private string _channel;
+		private string _streamerName;
+		private string _streamerId;
 
-		public TwitchBot(string channel)
+		public TwitchBot(string streamerName, string streamerId)
 		{
 			_settings = new Settings().LoadSettings();
 			var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder
 				.ClearProviders()
 				.AddNLog("nlog.config"));
 			_logger = loggerFactory.CreateLogger<TwitchBot>();
+			_streamerName = streamerName;
+			_streamerId = streamerId;
 			_chat = new TwitchChat.TwitchChat();
-			_channel = channel;
+			_api = new TwitchApi.TwitchApi("TwitchApi");
 		}
 
 		public Task StartAsync(CancellationToken cancellationToken)
 		{
-			_chat.Client.OnMessageReceived += Client_OnMessageReceived;
-			_chat.Connect(_channel);
+			_chat.Client.OnMessageReceived += Client_OnMessageReceivedAsync;
+			_chat.Connect(_streamerName);
 			return Task.CompletedTask;
 		}
 
-		private void Client_OnMessageReceived(object? sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
+		private async void Client_OnMessageReceivedAsync(object? sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
 		{
-			_logger.LogInformation($"{e.ChatMessage.DisplayName}: {e.ChatMessage.Message}");
+			await _api.GetOrCreateViewerById(e.ChatMessage.UserId);
+			using (BodyguardDbContext db = new())
+			{
+				TwitchMessage message = new TwitchMessage(_streamerId, e.ChatMessage.UserId, e.ChatMessage.Message);
+				db.Add(message);
+				db.SaveChanges();
+			}
 		}
 
 		public Task StopAsync(CancellationToken cancellationToken)
 		{
-			_chat.Client.OnMessageReceived -= Client_OnMessageReceived;
+			_chat.Client.OnMessageReceived -= Client_OnMessageReceivedAsync;
 			return Task.CompletedTask;
 		}
 	}

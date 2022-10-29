@@ -7,10 +7,16 @@ using System.Threading.Tasks;
 
 namespace Models.Db
 {
-	public class TwitchStreamer : TwitchUser
+	public class TwitchViewer : TwitchUser
 	{
-		public TwitchStreamer()
+
+		public TwitchViewer() : base()
 		{
+		}
+
+		public TwitchViewer(string id, string name, string displayName) : base()
+		{
+
 		}
 	}
 }

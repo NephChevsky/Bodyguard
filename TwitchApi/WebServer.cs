@@ -5,10 +5,10 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TwitchChat
+namespace TwitchApi
 {
-	internal class WebServer
-	{
+    internal class WebServer
+    {
         private HttpListener listener;
 
         public WebServer(string uri)

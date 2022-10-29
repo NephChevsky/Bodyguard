@@ -42,17 +42,16 @@ namespace TwitchBot
 					hostOptions.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
 				});
 
-				services.AddSingleton<TwitchChat.TwitchChat>();
+				services.AddSingleton<TwitchApi.TwitchApi>();
 
 				using (BodyguardDbContext db = new())
 				{
 					List<TwitchStreamer> streamers = db.TwitchStreamers.ToList();
 					foreach (TwitchStreamer streamer in streamers)
 					{
-						services.AddSingleton<IHostedService>(x => ActivatorUtilities.CreateInstance<Services.TwitchBot>(x, streamer.Name));
+						services.AddSingleton<IHostedService>(x => ActivatorUtilities.CreateInstance<Services.TwitchBot>(x, streamer.Name, streamer.TwitchOwner));
 					}
 				}
-
 
 				services.AddLogging(logging =>
 				{
