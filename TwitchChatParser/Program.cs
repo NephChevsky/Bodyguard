@@ -1,5 +1,4 @@
-﻿using TwitchBot.Services;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -8,8 +7,9 @@ using NLog.Extensions.Logging;
 using System.Reflection;
 using Db;
 using Models.Db;
+using TwitchChatParser.Services;
 
-namespace TwitchBot
+namespace TwitchChatParser
 {
 	internal class Program
 	{
@@ -49,7 +49,7 @@ namespace TwitchBot
 					List<TwitchStreamer> streamers = db.TwitchStreamers.ToList();
 					foreach (TwitchStreamer streamer in streamers)
 					{
-						services.AddSingleton<IHostedService>(x => ActivatorUtilities.CreateInstance<Services.TwitchBot>(x, streamer.Name, streamer.TwitchOwner));
+						services.AddSingleton<IHostedService>(x => ActivatorUtilities.CreateInstance<TwitchBot>(x, streamer.Name, streamer.TwitchOwner));
 					}
 				}
 

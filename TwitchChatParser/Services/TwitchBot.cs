@@ -10,7 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TwitchBot.Services
+namespace TwitchChatParser.Services
 {
 	internal class TwitchBot : IHostedService
 	{
