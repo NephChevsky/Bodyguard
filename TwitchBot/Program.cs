@@ -43,8 +43,6 @@ namespace TwitchBot
                 services.AddSingleton<TwitchChat.TwitchChat>();
                 services.AddHostedService<Services.TwitchBot>();
 
-                
-
                 services.AddLogging(logging =>
                 {
                     logging.ClearProviders();
