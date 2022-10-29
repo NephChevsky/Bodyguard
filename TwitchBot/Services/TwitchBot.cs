@@ -15,8 +15,9 @@ namespace TwitchBot.Services
 		private Settings _settings;
 		private TwitchChat.TwitchChat _chat;
 		private readonly ILogger _logger;
+		private string _channel;
 
-		public TwitchBot()
+		public TwitchBot(string channel)
 		{
 			_settings = new Settings().LoadSettings();
 			var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder
@@ -24,12 +25,13 @@ namespace TwitchBot.Services
 				.AddNLog("nlog.config"));
 			_logger = loggerFactory.CreateLogger<TwitchBot>();
 			_chat = new TwitchChat.TwitchChat();
-			_chat.Connect("nephchevsky");
+			_channel = channel;
 		}
 
 		public Task StartAsync(CancellationToken cancellationToken)
 		{
 			_chat.Client.OnMessageReceived += Client_OnMessageReceived;
+			_chat.Connect(_channel);
 			return Task.CompletedTask;
 		}
 
