@@ -20,19 +20,10 @@ namespace TwitchChatParser
 			IHost host = Host.CreateDefaultBuilder(args)
 			.ConfigureAppConfiguration((hostingContext, configBuilder) =>
 			{
-				string pathSecret = "secret.json";
-				if (!File.Exists(pathSecret))
-				{
-					pathSecret = Path.Combine(@"D:\dev\Bodyguard", pathSecret);
-				}
-				string pathConfig = "config.json";
-				if (!File.Exists(pathConfig))
-				{
-					pathConfig = Path.Combine(@"D:\dev\Bodyguard", pathConfig);
-				}
+				System.IO.Directory.SetCurrentDirectory(System.AppDomain.CurrentDomain.BaseDirectory);
 				IConfigurationRoot config = configBuilder.SetBasePath(Directory.GetCurrentDirectory())
-					.AddJsonFile(pathSecret, false)
-					.AddJsonFile(pathConfig, false)
+					.AddJsonFile("config.json", false)
+					.AddJsonFile("secret.json", false)
 					.Build();
 			})
 			.ConfigureServices(services =>
@@ -60,6 +51,7 @@ namespace TwitchChatParser
 					GlobalDiagnosticsContext.Set("appName", projectName);
 				});
 			})
+			.UseWindowsService()
 			.Build();
 
 			host.Run();

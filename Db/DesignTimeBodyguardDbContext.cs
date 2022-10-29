@@ -13,10 +13,11 @@ namespace Db
 	{
         public BodyguardDbContext CreateDbContext(string[] args)
         {
+            System.IO.Directory.SetCurrentDirectory(System.AppDomain.CurrentDomain.BaseDirectory);
             string path = "secret.json";
             if (!File.Exists(path))
             {
-                path = Path.Combine(@"D:\Dev\Twitch", path);
+                path = Path.Combine(@"D:\Dev\Bodyguard", path);
             }
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())

@@ -16,20 +16,11 @@ namespace Models
 		public Settings LoadSettings()
 		{
 			Twitch = new Twitch();
-			string pathSecret = "secret.json";
-			if (!File.Exists(pathSecret))
-			{
-				pathSecret = Path.Combine(@"D:\dev\Bodyguard", pathSecret);
-			}
-			string pathConfig = "config.json";
-			if (!File.Exists(pathConfig))
-			{
-				pathConfig = Path.Combine(@"D:\dev\Bodyguard", pathConfig);
-			}
+			System.IO.Directory.SetCurrentDirectory(System.AppDomain.CurrentDomain.BaseDirectory);
 			IConfigurationRoot configuration = new ConfigurationBuilder()
 				.SetBasePath(Directory.GetCurrentDirectory())
-				.AddJsonFile(pathSecret, false)
-				.AddJsonFile(pathConfig, false)
+				.AddJsonFile("config.json", false)
+				.AddJsonFile("secret.json", false)
 				.Build();
 
 			Current = configuration.GetSection("Settings").Get<Settings>();

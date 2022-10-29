@@ -27,6 +27,7 @@ namespace Db
         {
             base.OnConfiguring(optionsBuilder);
 
+            System.IO.Directory.SetCurrentDirectory(System.AppDomain.CurrentDomain.BaseDirectory);
             string path = "secret.json";
             if (!File.Exists(path))
             {

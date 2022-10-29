@@ -36,6 +36,7 @@ namespace TwitchChatParser.Services
 
 		public Task StartAsync(CancellationToken cancellationToken)
 		{
+			_logger.LogInformation("Starting chat bot for " + _streamerName);
 			_chat.Client.OnMessageReceived += Client_OnMessageReceivedAsync;
 			_chat.Connect(_streamerName);
 			return Task.CompletedTask;
@@ -54,6 +55,7 @@ namespace TwitchChatParser.Services
 
 		public Task StopAsync(CancellationToken cancellationToken)
 		{
+			_logger.LogInformation("Stopping chat bot for " + _streamerName);
 			_chat.Client.OnMessageReceived -= Client_OnMessageReceivedAsync;
 			return Task.CompletedTask;
 		}
