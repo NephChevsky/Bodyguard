@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
 using System.Reflection;
+using Db;
+using Models.Db;
 
 namespace TwitchBot
 {
@@ -32,7 +34,6 @@ namespace TwitchBot
                     .AddJsonFile(pathSecret, false)
                     .AddJsonFile(pathConfig, false)
                     .Build();
-
             })
             .ConfigureServices(services =>
             {
@@ -40,7 +41,14 @@ namespace TwitchBot
                 {
                     hostOptions.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
                 });
+
                 services.AddSingleton<TwitchChat.TwitchChat>();
+
+                /*using (BodyguardDbContext db = new())
+                {
+                    List<TwitchStreamer> streamers = db.TwitchStreamers.ToList();
+                    services.AddSingleton<IHostedService, HostedService>();
+                }*/
                 services.AddHostedService<Services.TwitchBot>();
 
                 services.AddLogging(logging =>

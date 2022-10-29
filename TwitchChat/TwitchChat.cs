@@ -1,11 +1,10 @@
 ﻿using Db;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Db;
+using NLog.Extensions.Logging;
 using TwitchLib.Api;
 using TwitchLib.Api.Auth;
-using TwitchLib.Api.Helix.Models.Users.GetUsers;
 using TwitchLib.Client;
 using TwitchLib.Client.Models;
 using TwitchLib.Communication.Clients;
@@ -16,14 +15,16 @@ namespace TwitchChat
 	public class TwitchChat
 	{
 		private Settings _settings;
-		private readonly ILogger<TwitchChat> _logger;
+		private ILogger<TwitchChat> _logger;
 		public TwitchClient Client;
 
-		public TwitchChat(IConfiguration configuration, ILogger<TwitchChat> logger)
+		public TwitchChat()
 		{
-			_settings = configuration.GetSection("Settings").Get<Settings>();
-			_logger = logger;
-			CheckAndUpdateTokenStatus().GetAwaiter().GetResult();
+			_settings = new Settings().LoadSettings();
+			var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder
+				.ClearProviders()
+				.AddNLog("nlog.config"));
+			_logger = loggerFactory.CreateLogger<TwitchChat>();
 
 			var clientOptions = new ClientOptions
 			{
@@ -32,20 +33,27 @@ namespace TwitchChat
 			};
 			WebSocketClient customClient = new WebSocketClient(clientOptions);
 			Client = new TwitchClient(customClient);
+		}
+
+		public bool Connect(string channel)
+		{
+			CheckAndUpdateTokenStatus().GetAwaiter().GetResult();
 
 			using (BodyguardDbContext db = new())
 			{
 				Token token = db.Tokens.Where(x => x.Name == "TwitchBotAccessToken").Single();
 				ConnectionCredentials credentials = new(_settings.Twitch.BotName, token.Value);
-				Client.Initialize(credentials, "nephchevsky");
+				Client.Initialize(credentials, channel);
 			}
 
-			Client.Connect();
+			bool ret = Client.Connect();
 
 			while (!Client.IsConnected)
 			{
 				Task.Delay(20).Wait();
 			}
+
+			return ret;
 		}
 
 		public async Task CheckAndUpdateTokenStatus()

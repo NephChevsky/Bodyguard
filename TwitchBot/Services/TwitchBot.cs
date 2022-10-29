@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Models;
+using NLog.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,13 +12,19 @@ namespace TwitchBot.Services
 {
 	internal class TwitchBot : IHostedService
 	{
+		private Settings _settings;
 		private TwitchChat.TwitchChat _chat;
-		private readonly ILogger<TwitchBot> _logger;
+		private readonly ILogger _logger;
 
-		public TwitchBot(ILogger<TwitchBot> logger, TwitchChat.TwitchChat chat)
+		public TwitchBot()
 		{
-			_logger = logger;
-			_chat = chat;
+			_settings = new Settings().LoadSettings();
+			var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder
+				.ClearProviders()
+				.AddNLog("nlog.config"));
+			_logger = loggerFactory.CreateLogger<TwitchBot>();
+			_chat = new TwitchChat.TwitchChat();
+			_chat.Connect("nephchevsky");
 		}
 
 		public Task StartAsync(CancellationToken cancellationToken)
