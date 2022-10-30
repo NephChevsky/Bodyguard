@@ -40,7 +40,7 @@ namespace TwitchChatParser
 					List<TwitchStreamer> streamers = db.TwitchStreamers.ToList();
 					foreach (TwitchStreamer streamer in streamers)
 					{
-						services.AddSingleton<IHostedService>(x => ActivatorUtilities.CreateInstance<TwitchBot>(x, streamer.Name, streamer.TwitchOwner));
+						services.AddSingleton<IHostedService>(x => ActivatorUtilities.CreateInstance<Services.TwitchChatParser>(x, streamer.Name, streamer.TwitchOwner));
 					}
 				}
 

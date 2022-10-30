@@ -4,6 +4,7 @@ using Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Db.Migrations
 {
     [DbContext(typeof(BodyguardDbContext))]
-    partial class BodyguardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20221030173431_Sentiment")]
+    partial class Sentiment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -47,41 +49,6 @@ namespace Db.Migrations
                     b.ToTable("Tokens");
                 });
 
-            modelBuilder.Entity("Models.Db.TwitchBan", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("BanReason")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
-                    b.Property<string>("Channel")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("CreationDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LastModificationDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("TwitchOwner")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.ToTable("TwitchBans");
-                });
-
             modelBuilder.Entity("Models.Db.TwitchMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -90,8 +57,8 @@ namespace Db.Migrations
 
                     b.Property<string>("Channel")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
 
                     b.Property<DateTime>("CreationDateTime")
                         .HasColumnType("datetime2");
@@ -159,46 +126,6 @@ namespace Db.Migrations
                         .IsUnique();
 
                     b.ToTable("TwitchStreamers");
-                });
-
-            modelBuilder.Entity("Models.Db.TwitchTimeout", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Channel")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("CreationDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LastModificationDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("TimeoutDuration")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("TimeoutReason")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
-                    b.Property<string>("TwitchOwner")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.ToTable("TwitchTimeouts");
                 });
 
             modelBuilder.Entity("Models.Db.TwitchViewer", b =>

@@ -24,7 +24,7 @@ namespace Db
                 .AddJsonFile(path, false)
                 .Build();
 
-            var connectionString = configuration.GetConnectionString(configuration.GetConnectionString("DbKey"));
+            var connectionString = configuration.GetConnectionString("DbKey");
             var builder = new DbContextOptionsBuilder<BodyguardDbContext>();
             builder.UseSqlServer(connectionString);
             return new BodyguardDbContext(builder.Options);

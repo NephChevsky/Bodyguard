@@ -13,6 +13,8 @@ namespace Models.Db
 		public string TwitchOwner { get; set; }
 		public string Channel { get; set; }
 		public string Message { get; set; }
+		public bool? Sentiment { get; set; }
+		public float SentimentScore { get; set; }
 		public DateTime CreationDateTime { get; set; }
 		public DateTime? LastModificationDateTime { get; set; }
 
@@ -21,6 +23,8 @@ namespace Models.Db
 			Channel = string.Empty;
 			TwitchOwner = string.Empty;
 			Message = string.Empty;
+			Sentiment = null;
+			SentimentScore = 0;
 			CreationDateTime = DateTime.Now;
 		}
 
@@ -29,6 +33,8 @@ namespace Models.Db
 			Channel = channel;
 			TwitchOwner = userId;
 			Message = userMessage;
+			Sentiment = null;
+			SentimentScore = 0;
 			CreationDateTime = DateTime.Now;
 		}
 	}

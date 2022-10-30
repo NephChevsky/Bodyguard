@@ -21,6 +21,8 @@ namespace Db
         public DbSet<TwitchStreamer> TwitchStreamers => Set<TwitchStreamer>();
         public DbSet<TwitchViewer> TwitchViewers => Set<TwitchViewer>();
         public DbSet<TwitchMessage> TwitchMessages => Set<TwitchMessage>();
+        public DbSet<TwitchBan> TwitchBans => Set<TwitchBan>();
+        public DbSet<TwitchTimeout> TwitchTimeouts => Set<TwitchTimeout>(); 
         public DbSet<Token> Tokens => Set<Token>();
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -80,11 +82,49 @@ namespace Db
 
                 entity.Property(e => e.Channel)
                     .IsRequired()
-                    .HasMaxLength(512);
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.Sentiment)
+                    .IsRequired()
+                    .HasDefaultValue(null);
+
+                entity.Property(e => e.SentimentScore)
+                    .IsRequired()
+                    .HasDefaultValue(0);
 
                 AddGenericFields<TwitchMessage>(entity);
             });
             modelBuilder.Entity<TwitchMessage>().HasIndex(t => new { t.Id }).IsUnique(true);
+
+            modelBuilder.Entity<TwitchBan>(entity =>
+            {
+                entity.Property(e => e.Channel)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.BanReason)
+                    .HasMaxLength(512);
+
+                AddGenericFields<TwitchBan>(entity);
+            });
+            modelBuilder.Entity<TwitchBan>().HasIndex(t => new { t.Id }).IsUnique(true);
+
+            modelBuilder.Entity<TwitchTimeout>(entity =>
+            {
+                entity.Property(e => e.Channel)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.TimeoutDuration)
+                    .IsRequired()
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.TimeoutReason)
+                    .HasMaxLength(512);
+
+                AddGenericFields<TwitchTimeout>(entity);
+            });
+            modelBuilder.Entity<TwitchTimeout>().HasIndex(t => new { t.Id }).IsUnique(true);
 
             Expression<Func<ISoftDeleteable, bool>> filterSoftDeleteable = bm => !bm.Deleted;
             Expression? filter = null;

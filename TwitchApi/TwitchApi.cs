@@ -13,7 +13,7 @@ namespace TwitchApi
 	public class TwitchApi
 	{
 		private Settings _settings;
-		private static ILogger<TwitchApi> _logger;
+		private ILogger<TwitchApi> _logger;
 		private TwitchAPI api;
 
         public TwitchApi(IConfiguration configuration, ILogger<TwitchApi> logger)
@@ -129,6 +129,39 @@ namespace TwitchApi
 					{
 						viewer = new(response.Users[0].Id, response.Users[0].Login, response.Users[0].DisplayName);
 						db.TwitchViewers.Add(viewer);
+						db.SaveChanges();
+					}
+					else
+					{
+						return null;
+					}
+				}
+				return viewer;
+			}
+		}
+
+		public async Task<TwitchViewer?> GetOrCreateViewerByUsername(string username)
+		{
+			using (BodyguardDbContext db = new())
+			{
+				TwitchViewer? viewer = db.TwitchViewers.Where(x => x.Name == username).FirstOrDefault();
+				if (viewer == null)
+				{
+					GetUsersResponse response = await api.Helix.Users.GetUsersAsync(null, new List<string>() { username });
+					if (response != null && response.Users.Count() != 0)
+					{
+						viewer = db.TwitchViewers.Where(x => x.TwitchOwner == response.Users[0].Id).FirstOrDefault();
+						if (viewer != null && (viewer.Name != response.Users[0].Login || viewer.DisplayName != response.Users[0].DisplayName))
+						{
+							// TODO: track name changes
+							viewer.Name = response.Users[0].Login;
+							viewer.DisplayName = response.Users[0].DisplayName;
+						}
+						else
+						{
+							viewer = new(response.Users[0].Id, response.Users[0].Login, response.Users[0].DisplayName);
+							db.TwitchViewers.Add(viewer);
+						}
 						db.SaveChanges();
 					}
 					else
