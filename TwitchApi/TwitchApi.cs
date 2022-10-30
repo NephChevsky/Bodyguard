@@ -153,7 +153,8 @@ namespace TwitchApi
 						viewer = db.TwitchViewers.Where(x => x.TwitchOwner == response.Users[0].Id).FirstOrDefault();
 						if (viewer != null && (viewer.Name != response.Users[0].Login || viewer.DisplayName != response.Users[0].DisplayName))
 						{
-							// TODO: track name changes
+							TwitchNameChange nameChange = new TwitchNameChange(viewer.TwitchOwner, viewer.Name);
+							db.TwitchNameChanges.Add(nameChange);
 							viewer.Name = response.Users[0].Login;
 							viewer.DisplayName = response.Users[0].DisplayName;
 						}

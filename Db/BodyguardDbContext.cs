@@ -22,7 +22,8 @@ namespace Db
         public DbSet<TwitchViewer> TwitchViewers => Set<TwitchViewer>();
         public DbSet<TwitchMessage> TwitchMessages => Set<TwitchMessage>();
         public DbSet<TwitchBan> TwitchBans => Set<TwitchBan>();
-        public DbSet<TwitchTimeout> TwitchTimeouts => Set<TwitchTimeout>(); 
+        public DbSet<TwitchTimeout> TwitchTimeouts => Set<TwitchTimeout>();
+        public DbSet<TwitchNameChange> TwitchNameChanges => Set<TwitchNameChange>();
         public DbSet<Token> Tokens => Set<Token>();
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -125,6 +126,16 @@ namespace Db
                 AddGenericFields<TwitchTimeout>(entity);
             });
             modelBuilder.Entity<TwitchTimeout>().HasIndex(t => new { t.Id }).IsUnique(true);
+
+            modelBuilder.Entity<TwitchNameChange>(entity =>
+            {
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(512);
+
+                AddGenericFields<TwitchNameChange>(entity);
+            });
+            modelBuilder.Entity<TwitchNameChange>().HasIndex(t => new { t.Id }).IsUnique(true);
 
             Expression<Func<ISoftDeleteable, bool>> filterSoftDeleteable = bm => !bm.Deleted;
             Expression? filter = null;
