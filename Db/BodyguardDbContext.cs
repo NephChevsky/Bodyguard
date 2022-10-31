@@ -86,7 +86,6 @@ namespace Db
                     .HasMaxLength(20);
 
                 entity.Property(e => e.Sentiment)
-                    .IsRequired()
                     .HasDefaultValue(null);
 
                 entity.Property(e => e.SentimentScore)

@@ -14,9 +14,9 @@ namespace Models.Db
 		{
 		}
 
-		public TwitchViewer(string id, string name, string displayName) : base()
+		public TwitchViewer(string id, string name, string displayName) : base(id, name, displayName)
 		{
-
+			
 		}
 	}
 }

@@ -9,7 +9,7 @@ namespace Models.Db
 {
 	public class TwitchStreamer : TwitchUser
 	{
-		public TwitchStreamer()
+		public TwitchStreamer() : base()
 		{
 		}
 	}

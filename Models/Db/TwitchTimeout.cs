@@ -13,7 +13,7 @@ namespace Models.Db
 		public string TwitchOwner { get; set; }
 		public string Channel { get; set; }
 		public int TimeoutDuration { get; set; }
-		public string TimeoutReason { get; set; }
+		public string? TimeoutReason { get; set; }
 		public DateTime CreationDateTime { get; set; }
 		public DateTime? LastModificationDateTime { get; set; }
 

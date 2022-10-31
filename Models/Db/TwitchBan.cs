@@ -12,7 +12,7 @@ namespace Models.Db
 		public Guid Id { get; set; }
 		public string TwitchOwner { get; set; }
 		public string Channel { get; set; }
-		public string BanReason { get; set; }
+		public string? BanReason { get; set; }
 		public DateTime CreationDateTime { get; set; }
 		public DateTime? LastModificationDateTime { get; set; }
 

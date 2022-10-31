@@ -41,6 +41,7 @@ namespace TwitchChatParser.Services
 			_chat.Client.OnMessageReceived += Client_OnMessageReceivedAsync;
 			_chat.Client.OnUserBanned += Client_OnUserBanned;
 			_chat.Client.OnUserTimedout += Client_OnUserTimedout;
+			_chat.Client.OnMessageCleared += Client_OnMessageCleared;
 			_chat.Connect(_streamerName);
 			return Task.CompletedTask;
 		}
@@ -81,12 +82,32 @@ namespace TwitchChatParser.Services
 			}
 		}
 
+		private void Client_OnMessageCleared(object? sender, OnMessageClearedArgs e)
+		{
+			using (BodyguardDbContext db = new())
+			{
+				DateTime limit = DateTimeOffset.FromUnixTimeSeconds(long.Parse(e.TmiSentTs)).DateTime;
+				limit = limit.AddMinutes(-10);
+				TwitchMessage? message = db.TwitchMessages.Where(x => x.Channel == e.Channel && x.Message == e.Message && x.CreationDateTime > limit).FirstOrDefault();
+				if (message != null)
+				{
+					message.Sentiment = false;
+					db.SaveChanges();
+				}
+				else
+				{
+					_logger.LogWarning($"Couldn't find message \"{e.Message}\" in channel \"{e.Channel}\" at \"{limit}\"");
+				}
+			}
+		}
+
 		public Task StopAsync(CancellationToken cancellationToken)
 		{
 			_logger.LogInformation("Stopping chat bot for " + _streamerName);
 			_chat.Client.OnMessageReceived -= Client_OnMessageReceivedAsync;
 			_chat.Client.OnUserBanned -= Client_OnUserBanned;
 			_chat.Client.OnUserTimedout -= Client_OnUserTimedout;
+			_chat.Client.OnMessageCleared -= Client_OnMessageCleared;
 			return Task.CompletedTask;
 		}
 	}

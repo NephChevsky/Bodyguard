@@ -4,6 +4,7 @@ using Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Db.Migrations
 {
     [DbContext(typeof(BodyguardDbContext))]
-    partial class BodyguardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20221031082939_sentinentNullable")]
+    partial class sentinentNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -54,6 +56,7 @@ namespace Db.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("BanReason")
+                        .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
@@ -212,6 +215,7 @@ namespace Db.Migrations
                         .HasDefaultValue(0);
 
                     b.Property<string>("TimeoutReason")
+                        .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
