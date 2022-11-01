@@ -77,6 +77,9 @@ namespace Db
 
             modelBuilder.Entity<TwitchMessage>(entity =>
             {
+                entity.Property(e => e.TwitchMessageId)
+                    .IsRequired();
+
                 entity.Property(e => e.Message)
                     .IsRequired()
                     .HasMaxLength(512);

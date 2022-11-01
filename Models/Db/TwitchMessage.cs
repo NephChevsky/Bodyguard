@@ -11,6 +11,7 @@ namespace Models.Db
 	{
 		public Guid Id { get; set; }
 		public string TwitchOwner { get; set; }
+		public Guid TwitchMessageId { get; set; }
 		public string Channel { get; set; }
 		public string Message { get; set; }
 		public bool? Sentiment { get; set; }
@@ -28,10 +29,11 @@ namespace Models.Db
 			CreationDateTime = DateTime.Now;
 		}
 
-		public TwitchMessage(string channel, string userId, string userMessage)
+		public TwitchMessage(string channel, string userId, Guid twitchMessageId, string userMessage)
 		{
 			Channel = channel;
 			TwitchOwner = userId;
+			TwitchMessageId = twitchMessageId;
 			Message = userMessage;
 			Sentiment = null;
 			SentimentScore = 0;

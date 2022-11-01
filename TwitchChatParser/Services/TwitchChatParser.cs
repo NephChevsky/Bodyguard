@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TwitchLib.Client.Events;
+using TwitchLib.Communication.Events;
 
 namespace TwitchChatParser.Services
 {
@@ -43,7 +44,7 @@ namespace TwitchChatParser.Services
 			await _api.GetOrCreateViewerById(e.ChatMessage.UserId);
 			using (BodyguardDbContext db = new())
 			{
-				TwitchMessage message = new TwitchMessage(_streamer.TwitchOwner, e.ChatMessage.UserId, e.ChatMessage.Message);
+				TwitchMessage message = new TwitchMessage(_streamer.TwitchOwner, e.ChatMessage.UserId, Guid.Parse(e.ChatMessage.Id), e.ChatMessage.Message);
 				db.Add(message);
 				db.SaveChanges();
 			}
@@ -88,9 +89,7 @@ namespace TwitchChatParser.Services
 		{
 			using (BodyguardDbContext db = new())
 			{
-				DateTime limit = DateTimeOffset.FromUnixTimeSeconds(long.Parse(e.TmiSentTs)).DateTime;
-				limit = limit.AddMinutes(-10);
-				TwitchMessage? message = db.TwitchMessages.Where(x => x.Channel == e.Channel && x.Message == e.Message && x.CreationDateTime > limit).FirstOrDefault();
+				TwitchMessage? message = db.TwitchMessages.Where(x => x.TwitchMessageId == Guid.Parse(e.TargetMessageId)).FirstOrDefault();
 				if (message != null)
 				{
 					message.Sentiment = false;
@@ -98,9 +97,14 @@ namespace TwitchChatParser.Services
 				}
 				else
 				{
-					_logger.LogWarning($"Couldn't find message \"{e.Message}\" in channel \"{e.Channel}\" at \"{limit}\"");
+					_logger.LogError($"Couldn't find message \"{e.Message}\" ({e.TargetMessageId}) in channel {e.Channel}");
 				}
 			}
+		}
+
+		private void Client_OnConnectionError(object? sender, OnConnectionErrorArgs e)
+		{
+			_logger.LogError($"Connection error triggered in chat bot for {_streamer.Name}");
 		}
 
 		public async void ExecuteAsync(CancellationToken stoppingToken)
@@ -110,11 +114,20 @@ namespace TwitchChatParser.Services
 			_chat.Client.OnUserBanned += Client_OnUserBanned;
 			_chat.Client.OnUserTimedout += Client_OnUserTimedout;
 			_chat.Client.OnMessageCleared += Client_OnMessageCleared;
+			_chat.Client.OnConnectionError += Client_OnConnectionError;
 			_chat.Connect(_streamer.Name);
-
-			while (!stoppingToken.IsCancellationRequested)
+			
+			try
 			{
-				await Task.Delay(1000);
+				while (!stoppingToken.IsCancellationRequested)
+				{
+					_logger.LogInformation($"Chat bot for {_streamer.Name} is still running");
+					await Task.Delay(60 * 1000, stoppingToken);
+				}
+			}
+			catch (OperationCanceledException)
+			{
+				_logger.LogInformation($"Chat bot for {_streamer.Name} was asked to shut down");
 			}
 
 			_logger.LogInformation("Stopping chat bot for " + _streamer.Name);
