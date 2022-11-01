@@ -22,6 +22,7 @@ namespace TwitchChatParser.Services
 		private TwitchApi.TwitchApi _api;
 
 		private TwitchStreamer _streamer;
+		private List<OnMessageClearedArgs> DeletedMessages;
 
 		public TwitchChatParser(string streamerId)
 		{
@@ -32,6 +33,8 @@ namespace TwitchChatParser.Services
 			_logger = loggerFactory.CreateLogger<TwitchChatParser>();
 			_chat = new TwitchChat.TwitchChat();
 			_api = new TwitchApi.TwitchApi("TwitchApi");
+
+			DeletedMessages = new List<OnMessageClearedArgs>();
 
 			using (BodyguardDbContext db = new())
 			{
@@ -87,19 +90,7 @@ namespace TwitchChatParser.Services
 
 		private void Client_OnMessageCleared(object? sender, OnMessageClearedArgs e)
 		{
-			using (BodyguardDbContext db = new())
-			{
-				TwitchMessage? message = db.TwitchMessages.Where(x => x.TwitchMessageId == Guid.Parse(e.TargetMessageId)).FirstOrDefault();
-				if (message != null)
-				{
-					message.Sentiment = false;
-					db.SaveChanges();
-				}
-				else
-				{
-					_logger.LogError($"Couldn't find message \"{e.Message}\" ({e.TargetMessageId}) in channel {e.Channel}");
-				}
-			}
+			DeletedMessages.Add(e);
 		}
 
 		private void Client_OnConnectionError(object? sender, OnConnectionErrorArgs e)
@@ -122,6 +113,7 @@ namespace TwitchChatParser.Services
 				while (!stoppingToken.IsCancellationRequested)
 				{
 					_logger.LogInformation($"Chat bot for {_streamer.Name} is still running");
+					DeletePendingClearedMessages();
 					await Task.Delay(60 * 1000, stoppingToken);
 				}
 			}
@@ -136,6 +128,32 @@ namespace TwitchChatParser.Services
 			_chat.Client.OnUserTimedout -= Client_OnUserTimedout;
 			_chat.Client.OnMessageCleared -= Client_OnMessageCleared;
 			_chat.Disconnect();
+		}
+
+		private void DeletePendingClearedMessages()
+		{
+			for (int i = 0; i < DeletedMessages.Count; i++)
+			{
+				OnMessageClearedArgs entry = DeletedMessages[i];
+				using (BodyguardDbContext db = new())
+				{
+					TwitchMessage? message = db.TwitchMessages.Where(x => x.TwitchMessageId == Guid.Parse(entry.TargetMessageId.ToUpper())).FirstOrDefault();
+					if (message != null)
+					{
+						message.Sentiment = false;
+						db.SaveChanges();
+					}
+					else
+					{
+						DateTime limit = TimeZoneInfo.ConvertTime(DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(entry.TmiSentTs)).DateTime, TimeZoneInfo.FindSystemTimeZoneById("Romance Standard Time"));
+						if (limit < DateTime.Now.AddMinutes(5))
+						{
+							DeletedMessages.Remove(entry);
+							_logger.LogError($"Couldn't find message \"{entry.Message}\" ({entry.TargetMessageId}) in channel {entry.Channel}");
+						}
+					}
+				}
+			}
 		}
 	}
 }
