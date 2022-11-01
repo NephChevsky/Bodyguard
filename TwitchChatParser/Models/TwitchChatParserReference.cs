@@ -8,13 +8,13 @@ namespace TwitchChatParser.Models
 {
 	internal class TwitchChatParserReference
 	{
-		public string Id { get; set; }
+		public string UserId { get; set; }
 		public Task Task { get; set; }
 		public CancellationTokenSource Cts { get; set; }
 
-		public TwitchChatParserReference(string id, Task task, CancellationTokenSource cts)
+		public TwitchChatParserReference(string userId, Task task, CancellationTokenSource cts)
 		{
-			Id = id;
+			UserId = userId;
 			Task = task;
 			Cts = cts;
 		}

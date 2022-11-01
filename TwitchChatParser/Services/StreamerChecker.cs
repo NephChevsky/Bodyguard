@@ -47,16 +47,19 @@ namespace TwitchChatParser.Services
 							List<string> streamerIds = streamersSubset.Select(x => x.TwitchOwner).ToList();
 							streams.AddRange(await _api.GetStreams(streamerIds));
 						}
-						foreach (TwitchChatParserReference entry in Instances)
+						for (int i = 0; i < Instances.Count; i++)
 						{
-							if (streams.Where(x => x.UserId == entry.Id) == null)
+							TwitchChatParserReference entry = Instances[i];
+							if (streams.Where(x => x.UserId == entry.UserId).FirstOrDefault() == null)
 							{
 								entry.Stop();
+								Instances.Remove(entry);
+								i--;
 							}
 						}
 						foreach (TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream stream in streams)
 						{
-							if (Instances.Where(x => x.Id == stream.UserId).FirstOrDefault() == null)
+							if (Instances.Where(x => x.UserId == stream.UserId).FirstOrDefault() == null)
 							{
 								CancellationTokenSource cts = new CancellationTokenSource();
 								Task instance = Task.Run(() =>
@@ -72,27 +75,19 @@ namespace TwitchChatParser.Services
 					await Task.Delay(60 * 1000, stoppingToken);
 				}
 			}
-			catch (Exception Ex)
+			catch (OperationCanceledException)
 			{
-				if (Ex is OperationCanceledException)
-				{
-					_logger.LogInformation("Service was asked to shut down");
-				}
-
-				_logger.LogInformation("StreamerChecker is stopping");
-
-				foreach (TwitchChatParserReference entry in Instances)
-				{
-					entry.Stop();
-				}
-
-				_logger.LogInformation("StreamerChecker stopped successfully");
-
-				if (Ex is not OperationCanceledException)
-				{
-					throw;
-				}
+				_logger.LogInformation("Service was asked to shut down");
 			}
+
+			_logger.LogInformation("TwitchChatParser is stopping");
+
+			foreach (TwitchChatParserReference entry in Instances)
+			{
+				entry.Stop();
+			}
+
+			_logger.LogInformation("TwitchChatParser stopped successfully");
 		}
 	}
 }
