@@ -64,6 +64,11 @@ namespace TwitchChatParser.Services
 			{
 				TwitchBan ban = new TwitchBan(_streamerId, e.UserBan.TargetUserId, e.UserBan.BanReason);
 				db.TwitchBans.Add(ban);
+				List<TwitchMessage> messages = db.TwitchMessages.Where(x => x.Channel == _streamerId && x.TwitchOwner == e.UserBan.TargetUserId && x.CreationDateTime > DateTime.Now.AddMinutes(-10)).OrderByDescending(x => x.CreationDateTime).Take(5).ToList();
+				foreach (TwitchMessage message in messages)
+				{
+					message.Sentiment = false;
+				}
 				db.SaveChanges();
 			}
 		}
@@ -77,6 +82,11 @@ namespace TwitchChatParser.Services
 				{
 					TwitchTimeout timeout = new TwitchTimeout(_streamerId, viewer.TwitchOwner, e.UserTimeout.TimeoutDuration, e.UserTimeout.TimeoutReason);
 					db.TwitchTimeouts.Add(timeout);
+					List<TwitchMessage> messages = db.TwitchMessages.Where(x => x.Channel == _streamerId && x.TwitchOwner == viewer.TwitchOwner && x.CreationDateTime > DateTime.Now.AddMinutes(-10)).OrderByDescending(x => x.CreationDateTime).Take(5).ToList();
+					foreach (TwitchMessage message in messages)
+					{
+						message.Sentiment = false;
+					}
 					db.SaveChanges();
 				}
 			}
