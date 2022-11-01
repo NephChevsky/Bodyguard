@@ -13,37 +13,29 @@ using TwitchLib.Client.Events;
 
 namespace TwitchChatParser.Services
 {
-	internal class TwitchChatParser : IHostedService
+	internal class TwitchChatParser
 	{
 		private Settings _settings;
 		private readonly ILogger _logger;
 		private TwitchChat.TwitchChat _chat;
 		private TwitchApi.TwitchApi _api;
-		private string _streamerName;
-		private string _streamerId;
 
-		public TwitchChatParser(string streamerName, string streamerId)
+		private TwitchStreamer _streamer;
+
+		public TwitchChatParser(string streamerId)
 		{
 			_settings = new Settings().LoadSettings();
 			var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder
 				.ClearProviders()
 				.AddNLog("nlog.config"));
 			_logger = loggerFactory.CreateLogger<TwitchChatParser>();
-			_streamerName = streamerName;
-			_streamerId = streamerId;
 			_chat = new TwitchChat.TwitchChat();
 			_api = new TwitchApi.TwitchApi("TwitchApi");
-		}
 
-		public Task StartAsync(CancellationToken cancellationToken)
-		{
-			_logger.LogInformation("Starting chat bot for " + _streamerName);
-			_chat.Client.OnMessageReceived += Client_OnMessageReceivedAsync;
-			_chat.Client.OnUserBanned += Client_OnUserBanned;
-			_chat.Client.OnUserTimedout += Client_OnUserTimedout;
-			_chat.Client.OnMessageCleared += Client_OnMessageCleared;
-			_chat.Connect(_streamerName);
-			return Task.CompletedTask;
+			using (BodyguardDbContext db = new())
+			{
+				_streamer = db.TwitchStreamers.Where(x => x.TwitchOwner == streamerId).First();
+			}
 		}
 
 		private async void Client_OnMessageReceivedAsync(object? sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
@@ -51,7 +43,7 @@ namespace TwitchChatParser.Services
 			await _api.GetOrCreateViewerById(e.ChatMessage.UserId);
 			using (BodyguardDbContext db = new())
 			{
-				TwitchMessage message = new TwitchMessage(_streamerId, e.ChatMessage.UserId, e.ChatMessage.Message);
+				TwitchMessage message = new TwitchMessage(_streamer.TwitchOwner, e.ChatMessage.UserId, e.ChatMessage.Message);
 				db.Add(message);
 				db.SaveChanges();
 			}
@@ -62,9 +54,9 @@ namespace TwitchChatParser.Services
 			await _api.GetOrCreateViewerById(e.UserBan.TargetUserId);
 			using (BodyguardDbContext db = new())
 			{
-				TwitchBan ban = new TwitchBan(_streamerId, e.UserBan.TargetUserId, e.UserBan.BanReason);
+				TwitchBan ban = new TwitchBan(_streamer.TwitchOwner, e.UserBan.TargetUserId, e.UserBan.BanReason);
 				db.TwitchBans.Add(ban);
-				List<TwitchMessage> messages = db.TwitchMessages.Where(x => x.Channel == _streamerId && x.TwitchOwner == e.UserBan.TargetUserId && x.CreationDateTime > DateTime.Now.AddMinutes(-10)).OrderByDescending(x => x.CreationDateTime).Take(5).ToList();
+				List<TwitchMessage> messages = db.TwitchMessages.Where(x => x.Channel == _streamer.TwitchOwner && x.TwitchOwner == e.UserBan.TargetUserId && x.CreationDateTime > DateTime.Now.AddMinutes(-10)).OrderByDescending(x => x.CreationDateTime).Take(5).ToList();
 				foreach (TwitchMessage message in messages)
 				{
 					message.Sentiment = false;
@@ -80,9 +72,9 @@ namespace TwitchChatParser.Services
 			{
 				using (BodyguardDbContext db = new())
 				{
-					TwitchTimeout timeout = new TwitchTimeout(_streamerId, viewer.TwitchOwner, e.UserTimeout.TimeoutDuration, e.UserTimeout.TimeoutReason);
+					TwitchTimeout timeout = new TwitchTimeout(_streamer.TwitchOwner, viewer.TwitchOwner, e.UserTimeout.TimeoutDuration, e.UserTimeout.TimeoutReason);
 					db.TwitchTimeouts.Add(timeout);
-					List<TwitchMessage> messages = db.TwitchMessages.Where(x => x.Channel == _streamerId && x.TwitchOwner == viewer.TwitchOwner && x.CreationDateTime > DateTime.Now.AddMinutes(-10)).OrderByDescending(x => x.CreationDateTime).Take(5).ToList();
+					List<TwitchMessage> messages = db.TwitchMessages.Where(x => x.Channel == _streamer.TwitchOwner && x.TwitchOwner == viewer.TwitchOwner && x.CreationDateTime > DateTime.Now.AddMinutes(-10)).OrderByDescending(x => x.CreationDateTime).Take(5).ToList();
 					foreach (TwitchMessage message in messages)
 					{
 						message.Sentiment = false;
@@ -111,14 +103,26 @@ namespace TwitchChatParser.Services
 			}
 		}
 
-		public Task StopAsync(CancellationToken cancellationToken)
+		public async void ExecuteAsync(CancellationToken stoppingToken)
 		{
-			_logger.LogInformation("Stopping chat bot for " + _streamerName);
+			_logger.LogInformation("Starting chat bot for " + _streamer.Name);
+			_chat.Client.OnMessageReceived += Client_OnMessageReceivedAsync;
+			_chat.Client.OnUserBanned += Client_OnUserBanned;
+			_chat.Client.OnUserTimedout += Client_OnUserTimedout;
+			_chat.Client.OnMessageCleared += Client_OnMessageCleared;
+			_chat.Connect(_streamer.Name);
+
+			while (!stoppingToken.IsCancellationRequested)
+			{
+				await Task.Delay(1000);
+			}
+
+			_logger.LogInformation("Stopping chat bot for " + _streamer.Name);
 			_chat.Client.OnMessageReceived -= Client_OnMessageReceivedAsync;
 			_chat.Client.OnUserBanned -= Client_OnUserBanned;
 			_chat.Client.OnUserTimedout -= Client_OnUserTimedout;
 			_chat.Client.OnMessageCleared -= Client_OnMessageCleared;
-			return Task.CompletedTask;
+			_chat.Disconnect();
 		}
 	}
 }

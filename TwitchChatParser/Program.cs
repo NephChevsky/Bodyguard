@@ -34,15 +34,7 @@ namespace TwitchChatParser
 				});
 
 				services.AddSingleton<TwitchApi.TwitchApi>();
-
-				using (BodyguardDbContext db = new())
-				{
-					List<TwitchStreamer> streamers = db.TwitchStreamers.ToList();
-					foreach (TwitchStreamer streamer in streamers)
-					{
-						services.AddSingleton<IHostedService>(x => ActivatorUtilities.CreateInstance<Services.TwitchChatParser>(x, streamer.Name, streamer.TwitchOwner));
-					}
-				}
+				services.AddHostedService<StreamerChecker>();
 
 				services.AddLogging(logging =>
 				{

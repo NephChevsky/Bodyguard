@@ -6,6 +6,7 @@ using Models.Db;
 using NLog.Extensions.Logging;
 using TwitchLib.Api;
 using TwitchLib.Api.Auth;
+using TwitchLib.Api.Helix.Models.Streams.GetStreams;
 using TwitchLib.Api.Helix.Models.Users.GetUsers;
 
 namespace TwitchApi
@@ -172,6 +173,16 @@ namespace TwitchApi
 				}
 				return viewer;
 			}
+		}
+
+		public async Task<List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>> GetStreams(List<string> streamerIds)
+		{
+			GetStreamsResponse response = await api.Helix.Streams.GetStreamsAsync(null, null, 100, null, null, "all", streamerIds);
+			if (response != null)
+			{
+				return response.Streams.ToList();
+			}
+			return new List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>();
 		}
 	}
 }
