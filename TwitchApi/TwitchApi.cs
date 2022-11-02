@@ -50,9 +50,6 @@ namespace TwitchApi
 
 		private async Task CheckAndUpdateTokenStatus()
 		{
-			TwitchAPI api = new();
-			api.Settings.ClientId = _settings.Twitch.ClientId;
-			api.Settings.Secret = _settings.Twitch.ClientSecret;
 			using (BodyguardDbContext db = new())
 			{
 				TimeSpan firstRefresh = TimeSpan.FromSeconds(4 * 60 * 60 - 600);
