@@ -38,7 +38,7 @@ namespace TwitchChat
 
 		public bool Connect(string channel)
 		{
-			TwitchApi.TwitchApi api = new("TwitchChat");
+			TwitchApi.TwitchApi api = new();
 
 			using (BodyguardDbContext db = new())
 			{

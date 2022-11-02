@@ -32,7 +32,7 @@ namespace TwitchChatParser.Services
 				.AddNLog("nlog.config"));
 			_logger = loggerFactory.CreateLogger<TwitchChatParser>();
 			_chat = new TwitchChat.TwitchChat();
-			_api = new TwitchApi.TwitchApi("TwitchApi");
+			_api = new ();
 
 			DeletedMessages = new List<OnMessageClearedArgs>();
 
@@ -96,6 +96,7 @@ namespace TwitchChatParser.Services
 		private void Client_OnConnectionError(object? sender, OnConnectionErrorArgs e)
 		{
 			_logger.LogError($"Connection error triggered in chat bot for {_streamer.Name}");
+			_chat.Connect(_streamer.Name);
 		}
 
 		public async void ExecuteAsync(CancellationToken stoppingToken)

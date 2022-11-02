@@ -17,19 +17,17 @@ namespace TwitchApi
 		private ILogger<TwitchApi> _logger;
 		private TwitchAPI api;
 
-        public TwitchApi(IConfiguration configuration, ILogger<TwitchApi> logger)
+		private Timer? RefreshTokenTimer;
+
+		public TwitchApi(IConfiguration configuration, ILogger<TwitchApi> logger)
         {
             _settings = configuration.GetSection("Settings").Get<Settings>();
             _logger = logger;
 
-            api = new TwitchAPI();
-            api.Settings.ClientId = _settings.Twitch.ClientId;
-            api.Settings.Secret = _settings.Twitch.ClientSecret;
-
-            CheckAndUpdateTokenStatus("TwitchApi").GetAwaiter().GetResult();
+			api = Init();
         }
 
-		public TwitchApi(string tokenPrefix)
+		public TwitchApi()
 		{
 			_settings = new Settings().LoadSettings();
 			var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder
@@ -37,22 +35,29 @@ namespace TwitchApi
 				.AddNLog("nlog.config"));
 			_logger = loggerFactory.CreateLogger<TwitchApi>();
 
+			api = Init();
+		}
+
+		private TwitchAPI Init()
+		{
 			api = new TwitchAPI();
 			api.Settings.ClientId = _settings.Twitch.ClientId;
 			api.Settings.Secret = _settings.Twitch.ClientSecret;
 
-			CheckAndUpdateTokenStatus(tokenPrefix).GetAwaiter().GetResult();
+			CheckAndUpdateTokenStatus().GetAwaiter().GetResult();
+			return api;
 		}
 
-		public async Task CheckAndUpdateTokenStatus(string tokenPrefix)
+		private async Task CheckAndUpdateTokenStatus()
 		{
 			TwitchAPI api = new();
 			api.Settings.ClientId = _settings.Twitch.ClientId;
 			api.Settings.Secret = _settings.Twitch.ClientSecret;
 			using (BodyguardDbContext db = new())
 			{
+				TimeSpan firstRefresh = TimeSpan.FromSeconds(4 * 60 * 60 - 600);
 				bool shouldRefreshToken = false;
-				Token? accessToken = db.Tokens.Where(x => x.Name == tokenPrefix + "AccessToken").SingleOrDefault();
+				Token? accessToken = db.Tokens.Where(x => x.Name == "TwitchChatAccessToken").SingleOrDefault();
 				if (accessToken != null)
 				{
 					ValidateAccessTokenResponse response = await api.Auth.ValidateAccessTokenAsync(accessToken.Value);
@@ -60,17 +65,21 @@ namespace TwitchApi
 					{
 						shouldRefreshToken = true;
 					}
+					else
+					{
+						firstRefresh = TimeSpan.FromSeconds(Math.Max(0, response.ExpiresIn - 600));
+					}
 				}
 				else
 				{
-					accessToken = new Token(tokenPrefix + "AccessToken");
+					accessToken = new Token("TwitchChatAccessToken");
 					db.Tokens.Add(accessToken);
 					shouldRefreshToken = true;
 				}
 
 				if (shouldRefreshToken)
 				{
-					Token? refreshToken = db.Tokens.Where(x => x.Name == tokenPrefix + "RefreshToken").SingleOrDefault();
+					Token? refreshToken = db.Tokens.Where(x => x.Name == "TwitchChatRefreshToken").SingleOrDefault();
 					if (refreshToken != null)
 					{
 						RefreshResponse newToken = await api.Auth.RefreshAuthTokenAsync(refreshToken.Value, _settings.Twitch.ClientSecret);
@@ -79,16 +88,13 @@ namespace TwitchApi
 					}
 					else
 					{
-						refreshToken = new Token(tokenPrefix + "RefreshToken");
+						refreshToken = new Token("TwitchChatRefreshToken");
 						db.Tokens.Add(refreshToken);
 
 						var server = new WebServer(_settings.Twitch.RedirectUri);
 
 						List<string> scopes = new List<string>();
-						if (tokenPrefix == "TwitchChat")
-						{
-							scopes.Add("chat:read");
-						}
+						scopes.Add("chat:read");
 
 						string uri = $"https://id.twitch.tv/oauth2/authorize?client_id={_settings.Twitch.ClientId}&redirect_uri={System.Web.HttpUtility.UrlEncode(_settings.Twitch.RedirectUri)}&response_type=code&scope={String.Join('+', scopes)}";
 						_logger.LogWarning($"Please authorize here: {uri}");
@@ -101,15 +107,17 @@ namespace TwitchApi
 					}
 					db.SaveChanges();
 				}
+				api.Settings.AccessToken = accessToken.Value;
+				RefreshTokenTimer = new Timer(RefreshTokenAsync, null, firstRefresh, TimeSpan.FromSeconds(4 * 60 * 60 - 600));
 			}
 		}
 
-		public async Task RefreshTokenAsync()
+		private async void RefreshTokenAsync(object? state = null)
 		{
 			using (BodyguardDbContext db = new())
 			{
-				Token accessToken = db.Tokens.Where(x => x.Name == "StreamerAccessToken").Single();
-				Token refreshToken = db.Tokens.Where(x => x.Name == "StreamerRefreshToken").Single();
+				Token accessToken = db.Tokens.Where(x => x.Name == "TwitchChatAccessToken").Single();
+				Token refreshToken = db.Tokens.Where(x => x.Name == "TwitchChatAccessToken").Single();
 				RefreshResponse newToken = await api.Auth.RefreshAuthTokenAsync(refreshToken.Value, _settings.Twitch.ClientSecret);
 				accessToken.Value = newToken.AccessToken;
 				refreshToken.Value = newToken.RefreshToken;

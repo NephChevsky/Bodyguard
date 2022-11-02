@@ -21,11 +21,11 @@ namespace TwitchChatParser.Services
 
 		private List<TwitchChatParserReference> Instances;
 
-		public StreamerChecker(IConfiguration configuration, ILogger<StreamerChecker> logger)
+		public StreamerChecker(IConfiguration configuration, ILogger<StreamerChecker> logger, TwitchApi.TwitchApi api)
 		{
 			_settings = configuration.GetSection("Settings").Get<Settings>();
 			_logger = logger;
-			_api = new TwitchApi.TwitchApi("TwitchApi");
+			_api = api;
 
 			Instances = new List<TwitchChatParserReference>();
 		}
