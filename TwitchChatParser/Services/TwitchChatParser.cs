@@ -112,7 +112,7 @@ namespace TwitchChatParser.Services
 			{
 				while (!stoppingToken.IsCancellationRequested)
 				{
-					_logger.LogInformation($"Chat bot for {_streamer.Name} is still running");
+					_logger.LogInformation($"Chat bot for {_streamer.Name} ({_streamer.TwitchOwner}) is still running");
 					DeletePendingClearedMessages();
 					await Task.Delay(60 * 1000, stoppingToken);
 				}
