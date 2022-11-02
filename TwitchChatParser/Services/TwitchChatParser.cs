@@ -135,6 +135,7 @@ namespace TwitchChatParser.Services
 			for (int i = 0; i < DeletedMessages.Count; i++)
 			{
 				OnMessageClearedArgs entry = DeletedMessages[i];
+				bool removeEntry = false;
 				using (BodyguardDbContext db = new())
 				{
 					TwitchMessage? message = db.TwitchMessages.Where(x => x.TwitchMessageId == Guid.Parse(entry.TargetMessageId.ToUpper())).FirstOrDefault();
@@ -142,16 +143,22 @@ namespace TwitchChatParser.Services
 					{
 						message.Sentiment = false;
 						db.SaveChanges();
+						removeEntry = true;
 					}
 					else
 					{
 						DateTime limit = TimeZoneInfo.ConvertTime(DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(entry.TmiSentTs)).DateTime, TimeZoneInfo.FindSystemTimeZoneById("Romance Standard Time"));
 						if (limit < DateTime.Now.AddMinutes(5))
 						{
-							DeletedMessages.Remove(entry);
+							removeEntry = true;
 							_logger.LogError($"Couldn't find message \"{entry.Message}\" ({entry.TargetMessageId}) in channel {entry.Channel}");
 						}
 					}
+				}
+				if (removeEntry)
+				{
+					DeletedMessages.Remove(entry);
+					i--;
 				}
 			}
 		}
