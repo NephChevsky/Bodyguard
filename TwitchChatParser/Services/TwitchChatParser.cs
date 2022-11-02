@@ -95,8 +95,7 @@ namespace TwitchChatParser.Services
 
 		private void Client_OnConnectionError(object? sender, OnConnectionErrorArgs e)
 		{
-			_logger.LogError($"Connection error triggered in chat bot for {_streamer.Name}");
-			_chat.Connect(_streamer.Name);
+			_logger.LogError($"Connection error triggered in chat bot for {_streamer.Name}: {e.Error.Message}");
 		}
 
 		public async void ExecuteAsync(CancellationToken stoppingToken)

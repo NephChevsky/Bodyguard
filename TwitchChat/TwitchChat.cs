@@ -3,9 +3,6 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Models.Db;
 using NLog.Extensions.Logging;
-using TwitchApi;
-using TwitchLib.Api;
-using TwitchLib.Api.Auth;
 using TwitchLib.Client;
 using TwitchLib.Client.Models;
 using TwitchLib.Communication.Clients;
@@ -46,7 +43,7 @@ namespace TwitchChat
 				ConnectionCredentials credentials = new(_settings.Twitch.BotName, token.Value);
 				Client.Initialize(credentials, channel);
 			}
-
+			
 			bool ret = Client.Connect();
 
 			while (!Client.IsConnected)
