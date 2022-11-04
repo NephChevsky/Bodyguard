@@ -46,7 +46,11 @@ namespace SentimentAnalysis
                     .IsRequired()
                     .HasMaxLength(512);
 
-                entity.Property(e => e.Sentiment);
+                entity.Property(e => e.Sentiment)
+                    .IsRequired();
+
+                entity.Property(e => e.CreationDateTime)
+                    .IsRequired();
             });
             modelBuilder.Entity<TwitchSample>().HasIndex(t => new { t.Id }).IsUnique(true);
         }

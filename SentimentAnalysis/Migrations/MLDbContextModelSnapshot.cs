@@ -31,12 +31,15 @@ namespace SentimentAnalysis.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
+                    b.Property<DateTime>("CreationDateTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
-                    b.Property<bool?>("Sentiment")
+                    b.Property<bool>("Sentiment")
                         .HasColumnType("bit");
 
                     b.HasKey("Id");

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SentimentAnalysis": {
+      "commandName": "Project",
+      "commandLineArgs": "learn"
+    }
+  }
+}
