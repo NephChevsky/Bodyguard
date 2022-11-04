@@ -2,26 +2,7 @@
 	"Settings": {
 		"Twitch": {
 			"BotName": "neph_bot",
-			"RedirectUri": "http://localhost:8080/redirect/",
-			"StreamerList": [
-				"nephchevsky",
-				/*"reynomz",
-				"amphirae",
-				"dilyalive",
-				"rasmelthor",
-				"warden50",
-				"maghla",
-				"jeeltv",
-				"juliabayonetta_",
-				"LittleBigWhale",
-				"kaatsup",
-				"ultia",
-				"baghera-jones",
-				"gom4rt",
-				"angledroit",
-				"damdamlive",
-				"avamind"*/
-			]
+			"RedirectUri": "http://localhost:8079/redirect/"
 		}
 	}
 }
