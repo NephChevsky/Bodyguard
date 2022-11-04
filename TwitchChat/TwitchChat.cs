@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Models.Db;
 using NLog.Extensions.Logging;
+using TwitchApi;
 using TwitchLib.Client;
 using TwitchLib.Client.Models;
 using TwitchLib.Communication.Clients;
@@ -14,9 +15,12 @@ namespace TwitchChat
 	{
 		private Settings _settings;
 		private ILogger<TwitchChat> _logger;
+
+		private string _channel;
+
 		public TwitchClient Client;
 
-		public TwitchChat()
+		public TwitchChat(string channel)
 		{
 			_settings = new Settings().LoadSettings();
 			var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder
@@ -31,19 +35,19 @@ namespace TwitchChat
 			};
 			WebSocketClient customClient = new WebSocketClient(clientOptions);
 			Client = new TwitchClient(customClient);
+
+			_channel = channel;
 		}
 
-		public bool Connect(string channel)
+		public void Connect()
 		{
-			TwitchApi.TwitchApi api = new();
-
 			using (BodyguardDbContext db = new())
 			{
-				Token token = db.Tokens.Where(x => x.Name == "TwitchChatAccessToken").Single();
+				Token token = db.Tokens.Where(x => x.Name == "TwitchApiAccessToken").Single();
 				ConnectionCredentials credentials = new(_settings.Twitch.BotName, token.Value);
-				Client.Initialize(credentials, channel);
+				Client.Initialize(credentials, _channel);
 			}
-			
+
 			bool ret = Client.Connect();
 
 			while (!Client.IsConnected)
@@ -51,14 +55,13 @@ namespace TwitchChat
 				Task.Delay(20).Wait();
 			}
 
-			_logger.LogInformation("Successfully connected to " + channel);
-			return ret;
+			_logger.LogInformation($"Successfully connected to {_channel}");
 		}
 
 		public void Disconnect()
 		{
 			Client.Disconnect();
-			_logger.LogInformation("Successfully disconnected from chat");
+			_logger.LogInformation($"Successfully disconnected from {_channel}");
 		}
 	}
 }

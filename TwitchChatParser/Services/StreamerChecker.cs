@@ -64,7 +64,7 @@ namespace TwitchChatParser.Services
 								CancellationTokenSource cts = new CancellationTokenSource();
 								Task instance = Task.Run(() =>
 								{
-									TwitchChatParser chatParser = new(stream.UserId);
+									TwitchChatParser chatParser = new(_api, stream.UserId);
 									chatParser.ExecuteAsync(cts.Token);
 								});
 								Instances.Add(new TwitchChatParserReference(stream.UserId, instance, cts));

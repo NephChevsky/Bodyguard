@@ -5,8 +5,6 @@ using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
 using System.Reflection;
-using Db;
-using Models.Db;
 using TwitchChatParser.Services;
 
 namespace TwitchChatParser

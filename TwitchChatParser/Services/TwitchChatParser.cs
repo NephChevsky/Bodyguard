@@ -24,15 +24,14 @@ namespace TwitchChatParser.Services
 		private TwitchStreamer _streamer;
 		private List<OnMessageClearedArgs> DeletedMessages;
 
-		public TwitchChatParser(string streamerId)
+		public TwitchChatParser(TwitchApi.TwitchApi api, string streamerId)
 		{
 			_settings = new Settings().LoadSettings();
 			var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder
 				.ClearProviders()
 				.AddNLog("nlog.config"));
 			_logger = loggerFactory.CreateLogger<TwitchChatParser>();
-			_chat = new TwitchChat.TwitchChat();
-			_api = new ();
+			_api = api;
 
 			DeletedMessages = new List<OnMessageClearedArgs>();
 
@@ -40,6 +39,7 @@ namespace TwitchChatParser.Services
 			{
 				_streamer = db.TwitchStreamers.Where(x => x.TwitchOwner == streamerId).First();
 			}
+			_chat = new TwitchChat.TwitchChat(_streamer.Name);
 		}
 
 		private async void Client_OnMessageReceivedAsync(object? sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
@@ -106,7 +106,7 @@ namespace TwitchChatParser.Services
 			_chat.Client.OnUserTimedout += Client_OnUserTimedout;
 			_chat.Client.OnMessageCleared += Client_OnMessageCleared;
 			_chat.Client.OnConnectionError += Client_OnConnectionError;
-			_chat.Connect(_streamer.Name);
+			_chat.Connect();
 			
 			try
 			{
