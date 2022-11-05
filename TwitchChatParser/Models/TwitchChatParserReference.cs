@@ -19,10 +19,10 @@ namespace TwitchChatParser.Models
 			Cts = cts;
 		}
 
-		public void Stop()
+		public async Task Stop()
 		{
 			Cts.Cancel();
-			Task.Wait();
+			await Task;
 		}
 	}
 }

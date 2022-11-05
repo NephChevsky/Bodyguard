@@ -96,6 +96,7 @@ namespace TwitchChatParser.Services
 		private void Client_OnConnectionError(object? sender, OnConnectionErrorArgs e)
 		{
 			_logger.LogError($"Connection error triggered in chat bot for {_streamer.Name}: {e.Error.Message}");
+				_chat.Reconnect();
 		}
 
 		public async void ExecuteAsync(CancellationToken stoppingToken)
@@ -113,7 +114,7 @@ namespace TwitchChatParser.Services
 				while (!stoppingToken.IsCancellationRequested)
 				{
 					_logger.LogInformation($"Chat bot for {_streamer.Name} ({_streamer.TwitchOwner}) is still running");
-					DeletePendingClearedMessages();
+					DeletePendingClearedMessages(false);
 					await Task.Delay(60 * 1000, stoppingToken);
 				}
 			}
@@ -128,9 +129,11 @@ namespace TwitchChatParser.Services
 			_chat.Client.OnUserTimedout -= Client_OnUserTimedout;
 			_chat.Client.OnMessageCleared -= Client_OnMessageCleared;
 			_chat.Disconnect();
+
+			DeletePendingClearedMessages(true);
 		}
 
-		private void DeletePendingClearedMessages()
+		private void DeletePendingClearedMessages(bool force)
 		{
 			for (int i = 0; i < DeletedMessages.Count; i++)
 			{
@@ -148,7 +151,7 @@ namespace TwitchChatParser.Services
 					else
 					{
 						DateTime limit = TimeZoneInfo.ConvertTime(DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(entry.TmiSentTs)).DateTime, TimeZoneInfo.FindSystemTimeZoneById("Romance Standard Time"));
-						if (limit < DateTime.Now.AddMinutes(5))
+						if (limit < DateTime.Now.AddMinutes(5) || force)
 						{
 							removeEntry = true;
 							_logger.LogError($"Couldn't find message \"{entry.Message}\" ({entry.TargetMessageId}) in channel {entry.Channel}");
