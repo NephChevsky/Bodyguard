@@ -120,6 +120,40 @@ namespace TwitchApi
 			}
 		}
 
+		public async Task<TwitchStreamer?> GetOrCreateStreamerByUsername(string username)
+		{
+			using (BodyguardDbContext db = new())
+			{
+				TwitchStreamer? streamer = db.TwitchStreamers.Where(x => x.Name == username).FirstOrDefault();
+				if (streamer == null)
+				{
+					GetUsersResponse response = await api.Helix.Users.GetUsersAsync(null, new List<string>() { username });
+					if (response != null && response.Users.Count() != 0)
+					{
+						streamer = db.TwitchStreamers.Where(x => x.TwitchOwner == response.Users[0].Id).FirstOrDefault();
+						if (streamer != null && (streamer.Name != response.Users[0].Login || streamer.DisplayName != response.Users[0].DisplayName))
+						{
+							TwitchNameChange nameChange = new TwitchNameChange(streamer.TwitchOwner, streamer.Name);
+							db.TwitchNameChanges.Add(nameChange);
+							streamer.Name = response.Users[0].Login;
+							streamer.DisplayName = response.Users[0].DisplayName;
+						}
+						else
+						{
+							streamer = new(response.Users[0].Id, response.Users[0].Login, response.Users[0].DisplayName);
+							db.TwitchStreamers.Add(streamer);
+						}
+						db.SaveChanges();
+					}
+					else
+					{
+						return null;
+					}
+				}
+				return streamer;
+			}
+		}
+
 		public async Task<TwitchViewer?> GetOrCreateViewerByUsername(string username)
 		{
 			using (BodyguardDbContext db = new())
