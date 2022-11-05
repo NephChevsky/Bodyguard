@@ -63,5 +63,11 @@ namespace TwitchChat
 			Client.Disconnect();
 			_logger.LogInformation($"Successfully disconnected from {_channel}");
 		}
+
+		public void Reconnect()
+		{
+			Client.Reconnect();
+			_logger.LogInformation($"Successfully reconnected to {_channel}");
+		}
 	}
 }
