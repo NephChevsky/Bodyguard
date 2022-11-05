@@ -12,5 +12,10 @@ namespace Models.Db
 		public TwitchStreamer() : base()
 		{
 		}
+
+		public TwitchStreamer(string id, string name, string displayName) : base(id, name, displayName)
+		{
+
+		}
 	}
 }
