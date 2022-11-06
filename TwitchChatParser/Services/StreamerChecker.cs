@@ -101,14 +101,6 @@ namespace TwitchChatParser.Services
 				if (streams.Where(x => x.UserId == entry.UserId).FirstOrDefault() == null || entry.Task.IsCompleted)
 				{
 					await entry.Stop();
-				}
-			}
-
-			for (int i = 0; i < Instances.Count; i++)
-			{
-				TwitchChatParserReference entry = Instances[i];
-				if (entry.Task.IsCompleted)
-				{
 					Instances.Remove(entry);
 					i--;
 				}
