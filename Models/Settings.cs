@@ -34,6 +34,7 @@ namespace Models
 		public string ClientId { get; set; }
 		public string ClientSecret { get; set; }
 		public string RedirectUri { get; set; }
+		public int MaxBotInstances { get; set; }
 
 		public Twitch()
 		{
@@ -41,6 +42,7 @@ namespace Models
 			ClientId = string.Empty;
 			ClientSecret = string.Empty;
 			RedirectUri = string.Empty;
+			MaxBotInstances = -1;
 		}
 	}
 }

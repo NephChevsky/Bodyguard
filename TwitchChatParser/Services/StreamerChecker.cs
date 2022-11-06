@@ -119,7 +119,7 @@ namespace TwitchChatParser.Services
 		{
 			foreach (TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream stream in streams)
 			{
-				if (Instances.Where(x => x.UserId == stream.UserId).FirstOrDefault() == null)
+				if (Instances.Where(x => x.UserId == stream.UserId).FirstOrDefault() == null && (Instances.Count() < _settings.Twitch.MaxBotInstances || _settings.Twitch.MaxBotInstances == -1))
 				{
 					CancellationTokenSource cts = new CancellationTokenSource();
 					Task instance = Task.Run(() =>
