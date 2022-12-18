@@ -188,9 +188,9 @@ namespace TwitchApi
 			}
 		}
 
-		public async Task<List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>> GetStreams(List<string>? streamerIds = null, List<string>? languages = null)
+		public async Task<List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>> GetStreams(List<string>? streamerIds = null, List<string>? languages = null, List<string>? gameIds = null)
 		{
-			GetStreamsResponse response = await api.Helix.Streams.GetStreamsAsync(null, null, 100, null, languages, "all", streamerIds);
+			GetStreamsResponse response = await api.Helix.Streams.GetStreamsAsync(null, null, 100, gameIds, languages, "all", streamerIds);
 			if (response != null)
 			{
 				return response.Streams.ToList();

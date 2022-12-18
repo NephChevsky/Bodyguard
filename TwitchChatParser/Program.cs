@@ -1,50 +1,44 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
 using System.Reflection;
-using TwitchChatParser.Services;
 
 namespace TwitchChatParser
 {
-	internal class Program
+	public class Program
 	{
-		static void Main(string[] args)
+		public static void Main(string[] args)
 		{
 			string projectName = Assembly.GetCallingAssembly().GetName().Name ?? "App";
 
-			IHost host = Host.CreateDefaultBuilder(args)
-			.ConfigureAppConfiguration((hostingContext, configBuilder) =>
+			var builder = Host.CreateDefaultBuilder(args);
+
+			builder.ConfigureAppConfiguration((hostingContext, configBuilder) =>
 			{
 				System.IO.Directory.SetCurrentDirectory(System.AppDomain.CurrentDomain.BaseDirectory);
 				IConfigurationRoot config = configBuilder.SetBasePath(Directory.GetCurrentDirectory())
 					.AddJsonFile("config.json", false)
 					.AddJsonFile("secret.json", false)
 					.Build();
-			})
-			.ConfigureServices(services =>
+			});
+
+			builder.ConfigureServices(services =>
 			{
-				services.Configure<HostOptions>(hostOptions =>
-				{
-					hostOptions.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
-				});
-
+				services.AddAuthorization();
+				services.AddSingleton(new CommandLineArgs(args));
 				services.AddSingleton<TwitchApi.TwitchApi>();
-				services.AddHostedService<StreamerChecker>();
-
+				services.AddHostedService<ChatParser>();
 				services.AddLogging(logging =>
 				{
 					logging.ClearProviders();
 					logging.AddNLog("nlog.config");
-					GlobalDiagnosticsContext.Set("appName", projectName);
+					GlobalDiagnosticsContext.Set("appName", $"{projectName}-{args[0]}");
 				});
-			})
-			.UseWindowsService()
-			.Build();
+				services.AddControllers();
+			});
 
-			host.Run();
+			var app = builder.Build();
+
+			app.Run();
 		}
 	}
 }

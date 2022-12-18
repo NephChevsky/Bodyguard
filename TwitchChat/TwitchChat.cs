@@ -48,12 +48,7 @@ namespace TwitchChat
 				Client.Initialize(credentials, _channel);
 			}
 
-			bool ret = Client.Connect();
-
-			while (!Client.IsConnected)
-			{
-				Task.Delay(20).Wait();
-			}
+			Client.Connect();
 
 			_logger.LogInformation($"Successfully connected to {_channel}");
 		}
@@ -62,12 +57,6 @@ namespace TwitchChat
 		{
 			Client.Disconnect();
 			_logger.LogInformation($"Successfully disconnected from {_channel}");
-		}
-
-		public void Reconnect()
-		{
-			Client.Reconnect();
-			_logger.LogInformation($"Successfully reconnected to {_channel}");
 		}
 	}
 }

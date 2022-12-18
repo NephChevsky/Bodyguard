@@ -1,45 +1,65 @@
 ﻿using Db;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Models;
 using Models.Db;
-using NLog.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TwitchLib.Client.Events;
-using TwitchLib.Communication.Events;
 
-namespace TwitchChatParser.Services
+namespace TwitchChatParser
 {
-	internal class TwitchChatParser
+	public class ChatParser : IHostedService
 	{
 		private Settings _settings;
-		private readonly ILogger _logger;
+		private readonly ILogger<ChatParser> _logger;
 		private TwitchChat.TwitchChat _chat;
 		private TwitchApi.TwitchApi _api;
 
 		private TwitchStreamer _streamer;
 		private List<OnMessageClearedArgs> DeletedMessages;
 
-		public TwitchChatParser(TwitchApi.TwitchApi api, string streamerId)
+		private Timer DeletedMessagesTimer;
+
+		public ChatParser(IConfiguration configuration, ILogger<ChatParser> logger, TwitchApi.TwitchApi api, CommandLineArgs args)
 		{
-			_settings = new Settings().LoadSettings();
-			var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder
-				.ClearProviders()
-				.AddNLog("nlog.config"));
-			_logger = loggerFactory.CreateLogger<TwitchChatParser>();
+			_settings = configuration.GetSection("Settings").Get<Settings>();
+			_logger = logger;
 			_api = api;
 
 			DeletedMessages = new List<OnMessageClearedArgs>();
 
 			using (BodyguardDbContext db = new())
 			{
-				_streamer = db.TwitchStreamers.Where(x => x.TwitchOwner == streamerId).First();
+				_streamer = db.TwitchStreamers.Where(x => x.TwitchOwner == args.StreamerId).First();
 			}
 			_chat = new TwitchChat.TwitchChat(_streamer.Name);
+
+			DeletedMessagesTimer = new(DeletePendingClearedMessages, false, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+		}
+
+		public Task StartAsync(CancellationToken cancellationToken)
+		{
+			_logger.LogInformation("Starting chat bot for " + _streamer.Name);
+			_chat.Client.OnMessageReceived += Client_OnMessageReceivedAsync;
+			_chat.Client.OnUserBanned += Client_OnUserBanned;
+			_chat.Client.OnUserTimedout += Client_OnUserTimedout;
+			_chat.Client.OnMessageCleared += Client_OnMessageCleared;
+			_chat.Client.OnConnectionError += Client_OnConnectionError;
+			_chat.Client.OnLog += Client_OnLog;
+			_chat.Connect();
+			return Task.CompletedTask;
+		}
+
+		public Task StopAsync(CancellationToken cancellationToken)
+		{
+			_logger.LogInformation("Stopping chat bot for " + _streamer.Name);
+			_chat.Client.OnMessageReceived -= Client_OnMessageReceivedAsync;
+			_chat.Client.OnUserBanned -= Client_OnUserBanned;
+			_chat.Client.OnUserTimedout -= Client_OnUserTimedout;
+			_chat.Client.OnMessageCleared -= Client_OnMessageCleared;
+			_chat.Client.OnConnectionError -= Client_OnConnectionError;
+			_chat.Client.OnLog -= Client_OnLog;
+			_chat.Disconnect();
+
+			DeletePendingClearedMessages(true);
+			return Task.CompletedTask;
 		}
 
 		private async void Client_OnMessageReceivedAsync(object? sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
@@ -96,45 +116,21 @@ namespace TwitchChatParser.Services
 		private void Client_OnConnectionError(object? sender, OnConnectionErrorArgs e)
 		{
 			_logger.LogError($"Connection error triggered in chat bot for {_streamer.Name}: {e.Error.Message}");
-				_chat.Reconnect();
+			//_chat.Client.Reconnect();
 		}
 
-		public async void ExecuteAsync(CancellationToken stoppingToken)
+		private void Client_OnLog(object? sender, OnLogArgs e)
 		{
-			_logger.LogInformation("Starting chat bot for " + _streamer.Name);
-			_chat.Client.OnMessageReceived += Client_OnMessageReceivedAsync;
-			_chat.Client.OnUserBanned += Client_OnUserBanned;
-			_chat.Client.OnUserTimedout += Client_OnUserTimedout;
-			_chat.Client.OnMessageCleared += Client_OnMessageCleared;
-			_chat.Client.OnConnectionError += Client_OnConnectionError;
-			_chat.Connect();
-			
-			try
-			{
-				while (!stoppingToken.IsCancellationRequested)
-				{
-					_logger.LogInformation($"Chat bot for {_streamer.Name} ({_streamer.TwitchOwner}) is still running");
-					DeletePendingClearedMessages(false);
-					await Task.Delay(60 * 1000, stoppingToken);
-				}
-			}
-			catch (OperationCanceledException)
-			{
-				_logger.LogInformation($"Chat bot for {_streamer.Name} was asked to shut down");
-			}
-
-			_logger.LogInformation("Stopping chat bot for " + _streamer.Name);
-			_chat.Client.OnMessageReceived -= Client_OnMessageReceivedAsync;
-			_chat.Client.OnUserBanned -= Client_OnUserBanned;
-			_chat.Client.OnUserTimedout -= Client_OnUserTimedout;
-			_chat.Client.OnMessageCleared -= Client_OnMessageCleared;
-			_chat.Disconnect();
-
-			DeletePendingClearedMessages(true);
+			_logger.LogInformation($"log: {e.Data}");
 		}
 
-		private void DeletePendingClearedMessages(bool force)
+		private void DeletePendingClearedMessages(object? state)
 		{
+			bool force = false;
+			if (state != null && (bool) state == true)
+			{
+				force = true;
+			}
 			for (int i = 0; i < DeletedMessages.Count; i++)
 			{
 				OnMessageClearedArgs entry = DeletedMessages[i];
