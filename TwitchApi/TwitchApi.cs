@@ -17,7 +17,7 @@ namespace TwitchApi
 		private ILogger<TwitchApi> _logger;
 		private TwitchAPI api;
 
-		private Timer? RefreshTokenTimer;
+		private Timer RefreshTokenTimer;
 
 		public TwitchApi(IConfiguration configuration, ILogger<TwitchApi> logger)
         {
@@ -37,7 +37,7 @@ namespace TwitchApi
 			{
 				TimeSpan firstRefresh = TimeSpan.FromSeconds(4 * 60 * 60 - 10 * 60);
 				bool shouldRefreshToken = false;
-				Token? accessToken = db.Tokens.Where(x => x.Name == "TwitchApiAccessToken").SingleOrDefault();
+				Token accessToken = db.Tokens.Where(x => x.Name == "TwitchApiAccessToken").SingleOrDefault();
 				if (accessToken != null)
 				{
 					ValidateAccessTokenResponse response = await api.Auth.ValidateAccessTokenAsync(accessToken.Value);
@@ -59,7 +59,7 @@ namespace TwitchApi
 
 				if (shouldRefreshToken)
 				{
-					Token? refreshToken = db.Tokens.Where(x => x.Name == "TwitchApiRefreshToken").SingleOrDefault();
+					Token refreshToken = db.Tokens.Where(x => x.Name == "TwitchApiRefreshToken").SingleOrDefault();
 					if (refreshToken != null)
 					{
 						RefreshResponse newToken = await api.Auth.RefreshAuthTokenAsync(refreshToken.Value, _settings.Twitch.ClientSecret);
@@ -92,16 +92,16 @@ namespace TwitchApi
 			}
 		}
 
-		private async void RefreshTokenAsync(object? state = null)
+		private async void RefreshTokenAsync(object state = null)
 		{
 			await CheckAndUpdateTokenStatus();
 		}
 
-		public async Task<TwitchViewer?> GetOrCreateViewerById(string id)
+		public async Task<TwitchViewer> GetOrCreateViewerById(string id)
 		{
 			using (BodyguardDbContext db = new())
 			{
-				TwitchViewer? viewer = db.TwitchViewers.Where(x => x.TwitchOwner == id).FirstOrDefault();
+				TwitchViewer viewer = db.TwitchViewers.Where(x => x.TwitchOwner == id).FirstOrDefault();
 				if (viewer == null)
 				{
 					GetUsersResponse response = await api.Helix.Users.GetUsersAsync(new List<string>() { id });
@@ -120,11 +120,11 @@ namespace TwitchApi
 			}
 		}
 
-		public async Task<TwitchStreamer?> GetOrCreateStreamerByUsername(string username)
+		public async Task<TwitchStreamer> GetOrCreateStreamerByUsername(string username)
 		{
 			using (BodyguardDbContext db = new())
 			{
-				TwitchStreamer? streamer = db.TwitchStreamers.Where(x => x.Name == username).FirstOrDefault();
+				TwitchStreamer streamer = db.TwitchStreamers.Where(x => x.Name == username).FirstOrDefault();
 				if (streamer == null)
 				{
 					GetUsersResponse response = await api.Helix.Users.GetUsersAsync(null, new List<string>() { username });
@@ -154,11 +154,11 @@ namespace TwitchApi
 			}
 		}
 
-		public async Task<TwitchViewer?> GetOrCreateViewerByUsername(string username)
+		public async Task<TwitchViewer> GetOrCreateViewerByUsername(string username)
 		{
 			using (BodyguardDbContext db = new())
 			{
-				TwitchViewer? viewer = db.TwitchViewers.Where(x => x.Name == username).FirstOrDefault();
+				TwitchViewer viewer = db.TwitchViewers.Where(x => x.Name == username).FirstOrDefault();
 				if (viewer == null)
 				{
 					GetUsersResponse response = await api.Helix.Users.GetUsersAsync(null, new List<string>() { username });
@@ -188,9 +188,9 @@ namespace TwitchApi
 			}
 		}
 
-		public async Task<List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>> GetStreams(List<string>? streamerIds = null, List<string>? languages = null, List<string>? gameIds = null)
+		public async Task<List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>> GetStreams(List<string> streamerIds = null, List<string> languages = null, List<string> gameIds = null)
 		{
-			GetStreamsResponse response = await api.Helix.Streams.GetStreamsAsync(null, null, 100, gameIds, languages, "all", streamerIds);
+			GetStreamsResponse response = await api.Helix.Streams.GetStreamsAsync(null, 100, gameIds, languages, streamerIds);
 			if (response != null)
 			{
 				return response.Streams.ToList();

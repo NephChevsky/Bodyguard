@@ -140,7 +140,7 @@ namespace Db
             modelBuilder.Entity<TwitchNameChange>().HasIndex(t => new { t.Id }).IsUnique(true);
 
             Expression<Func<ISoftDeleteable, bool>> filterSoftDeleteable = bm => !bm.Deleted;
-            Expression? filter = null;
+            Expression filter = null;
             foreach (var type in modelBuilder.Model.GetEntityTypes())
             {
                 var param = Expression.Parameter(type.ClrType, "entity");
@@ -156,7 +156,7 @@ namespace Db
             }
         }
 
-        private Expression AddFilter(Expression? filter, Expression newFilter)
+        private Expression AddFilter(Expression filter, Expression newFilter)
         {
             if (filter == null)
             {

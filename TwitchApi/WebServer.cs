@@ -35,7 +35,7 @@ namespace TwitchApi
                 {
                     if (req.QueryString != null)
                     {
-                        string[]? values = req.QueryString.GetValues("code");
+                        string[] values = req.QueryString.GetValues("code");
                         if (values != null && values.Length != 0)
                         {
                             writer.WriteLine("Authorization started! Check your application!");

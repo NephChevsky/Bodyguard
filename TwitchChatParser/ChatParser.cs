@@ -62,7 +62,7 @@ namespace TwitchChatParser
 			return Task.CompletedTask;
 		}
 
-		private async void Client_OnMessageReceivedAsync(object? sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
+		private async void Client_OnMessageReceivedAsync(object sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
 		{
 			await _api.GetOrCreateViewerById(e.ChatMessage.UserId);
 			using (BodyguardDbContext db = new())
@@ -73,7 +73,7 @@ namespace TwitchChatParser
 			}
 		}
 
-		private async void Client_OnUserBanned(object? sender, OnUserBannedArgs e)
+		private async void Client_OnUserBanned(object sender, OnUserBannedArgs e)
 		{
 			await _api.GetOrCreateViewerById(e.UserBan.TargetUserId);
 			using (BodyguardDbContext db = new())
@@ -89,9 +89,9 @@ namespace TwitchChatParser
 			}
 		}
 
-		private async void Client_OnUserTimedout(object? sender, OnUserTimedoutArgs e)
+		private async void Client_OnUserTimedout(object sender, OnUserTimedoutArgs e)
 		{
-			TwitchViewer? viewer = await _api.GetOrCreateViewerByUsername(e.UserTimeout.Username);
+			TwitchViewer viewer = await _api.GetOrCreateViewerByUsername(e.UserTimeout.Username);
 			if (viewer != null)
 			{
 				using (BodyguardDbContext db = new())
@@ -108,23 +108,23 @@ namespace TwitchChatParser
 			}
 		}
 
-		private void Client_OnMessageCleared(object? sender, OnMessageClearedArgs e)
+		private void Client_OnMessageCleared(object sender, OnMessageClearedArgs e)
 		{
 			DeletedMessages.Add(e);
 		}
 
-		private void Client_OnConnectionError(object? sender, OnConnectionErrorArgs e)
+		private void Client_OnConnectionError(object sender, OnConnectionErrorArgs e)
 		{
 			_logger.LogError($"Connection error triggered in chat bot for {_streamer.Name}: {e.Error.Message}");
 			//_chat.Client.Reconnect();
 		}
 
-		private void Client_OnLog(object? sender, OnLogArgs e)
+		private void Client_OnLog(object sender, OnLogArgs e)
 		{
 			_logger.LogInformation($"log: {e.Data}");
 		}
 
-		private void DeletePendingClearedMessages(object? state)
+		private void DeletePendingClearedMessages(object state)
 		{
 			bool force = false;
 			if (state != null && (bool) state == true)
@@ -137,7 +137,7 @@ namespace TwitchChatParser
 				bool removeEntry = false;
 				using (BodyguardDbContext db = new())
 				{
-					TwitchMessage? message = db.TwitchMessages.Where(x => x.TwitchMessageId == Guid.Parse(entry.TargetMessageId.ToUpper())).FirstOrDefault();
+					TwitchMessage message = db.TwitchMessages.Where(x => x.TwitchMessageId == Guid.Parse(entry.TargetMessageId.ToUpper())).FirstOrDefault();
 					if (message != null)
 					{
 						message.Sentiment = false;

@@ -4,7 +4,7 @@ namespace Models
 {
 	public class Settings
 	{
-		public static Settings? Current { get; set; }
+		public static Settings Current { get; set; }
 
 		public Twitch Twitch { get; set; }
 
