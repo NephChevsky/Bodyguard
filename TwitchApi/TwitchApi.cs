@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Models.Db;
 using NLog.Extensions.Logging;
+using Polly;
 using TwitchLib.Api;
 using TwitchLib.Api.Auth;
 using TwitchLib.Api.Helix.Models.Streams.GetStreams;
@@ -14,10 +15,24 @@ namespace TwitchApi
 	public class TwitchApi
 	{
 		private Settings _settings;
-		private ILogger<TwitchApi> _logger;
+		private static ILogger<TwitchApi> _logger;
 		private TwitchAPI api;
 
 		private Timer RefreshTokenTimer;
+
+		private readonly IAsyncPolicy<dynamic> _retryPolicy = Policy.WrapAsync(Policy<dynamic>.Handle<Exception>().FallbackAsync(fallbackValue: null, onFallbackAsync: (result, context) =>
+		{
+			_logger.LogWarning($"Couldn't reach Twitch API, returning null");
+			return Task.CompletedTask;
+		}), Policy<dynamic>.Handle<Exception>()
+			.WaitAndRetryAsync(1, retry =>
+			{
+				return TimeSpan.FromMilliseconds(500);
+			}, (exception, timespan) =>
+			{
+				_logger.LogWarning($"Twitch API call failed: {exception.Exception.Message}");
+				_logger.LogWarning($"Retrying in {timespan.Milliseconds} ms");
+			}));
 
 		public TwitchApi(IConfiguration configuration, ILogger<TwitchApi> logger)
         {
