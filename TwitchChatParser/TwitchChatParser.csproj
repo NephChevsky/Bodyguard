@@ -5,9 +5,6 @@
 		<Nullable>disable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>54637f2f-811a-4bb0-a8c2-dfab97bb97eb</UserSecretsId>
-		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-		<DockerfileContext>..</DockerfileContext>
-		<DockerfileTag>twitch-chat-parser</DockerfileTag>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -25,10 +22,6 @@
 		<Content Include="../config.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.0" />
 	</ItemGroup>
 
 </Project>
