@@ -5,6 +5,7 @@ using NLog;
 using NLog.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace TwitchBotManager
 {
@@ -19,8 +20,8 @@ namespace TwitchBotManager
 			{
 				System.IO.Directory.SetCurrentDirectory(System.AppDomain.CurrentDomain.BaseDirectory);
 				IConfigurationRoot config = configBuilder.SetBasePath(Directory.GetCurrentDirectory())
-					.AddJsonFile("config.json", false)
-					.AddJsonFile("secret.json", false)
+					.AddJsonFile("config.json", false, false)
+					.AddJsonFile("secret.json", false, false)
 					.Build();
 			})
 			.ConfigureServices(services =>

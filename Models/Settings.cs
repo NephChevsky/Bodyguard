@@ -19,8 +19,8 @@ namespace Models
 			System.IO.Directory.SetCurrentDirectory(System.AppDomain.CurrentDomain.BaseDirectory);
 			IConfigurationRoot configuration = new ConfigurationBuilder()
 				.SetBasePath(Directory.GetCurrentDirectory())
-				.AddJsonFile("config.json", false)
-				.AddJsonFile("secret.json", false)
+				.AddJsonFile("config.json", false, false)
+				.AddJsonFile("secret.json", false, false)
 				.Build();
 
 			Current = configuration.GetSection("Settings").Get<Settings>();

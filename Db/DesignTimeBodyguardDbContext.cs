@@ -21,7 +21,7 @@ namespace Db
             }
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile(path, false)
+                .AddJsonFile(path, false, false)
                 .Build();
 
             var connectionString = configuration.GetConnectionString("DbKey");
