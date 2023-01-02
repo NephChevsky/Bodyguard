@@ -2,6 +2,7 @@
   "profiles": {
     "TwitchChatParser": {
       "commandName": "Project",
+      "commandLineArgs": "114497555",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"

@@ -6,7 +6,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Db;
-using TwitchLib.Api.Helix.Models.Charity.GetCharityCampaign;
+using System.Runtime.InteropServices;
+using System;
+using System.ComponentModel;
 
 namespace TwitchBotManager
 {
@@ -22,7 +24,13 @@ namespace TwitchBotManager
 			_settings = configuration.GetSection("Settings").Get<Settings>();
 			_logger = logger;
 			_api = api;
-			_dockerClient = new DockerClientConfiguration(new Uri("npipe://./pipe/docker_engine")).CreateClient();
+			Uri uri = new Uri("npipe://./pipe/docker_engine");
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+			{
+				uri = new Uri("unix:///var/run/docker.sock");
+			}
+			_dockerClient = new DockerClientConfiguration(uri).CreateClient();
+			
 		}
 
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -34,13 +42,13 @@ namespace TwitchBotManager
 				{
 					using (BodyguardDbContext db = new())
 					{
+						await FindNewStreamers(new List<string> { "fr" });
 						await FindNewStreamers(new List<string> { "fr" }, new List<string> { "30921" });
 
 						List<TwitchStreamer> streamers = db.TwitchStreamers.ToList();
 
 						List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = await GetTwitchStreams(streamers);
 
-						streams = streams.Where(x => x.GameId == "30921").ToList();
 						await StartAndStopInstances(streams);
 					}
 
@@ -53,16 +61,22 @@ namespace TwitchBotManager
 			}
 
 			_logger.LogInformation("Bot manager is stopping");
-
 			await StartAndStopInstances(new List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>());
-
 			_logger.LogInformation("Bot manager stopped successfully");
 		}
 
-		public async Task FindNewStreamers(List<string> languages, List<string> games)
+		public async Task FindNewStreamers(List<string> languages, List<string> games = null)
 		{
 			List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = await _api.GetStreams(null, languages, games);
-			streams = streams.Where(x => x.ViewerCount >= 20).ToList();
+			if (games != null)
+			{
+				streams = streams.Where(x => x.ViewerCount >= 10).ToList();
+			}
+			else
+			{
+				streams = streams.Where(x => x.ViewerCount >= 1000).ToList();
+			}
+			
 			foreach (TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream stream in streams)
 			{
 				await _api.GetOrCreateStreamerByUsername(stream.UserLogin);
@@ -71,13 +85,12 @@ namespace TwitchBotManager
 
 		public async Task<List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>> GetTwitchStreams(List<TwitchStreamer> streamers)
 		{
-			List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = new ();
-			while (streamers.Count > 0)
+			int offset = 0;
+			List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = new List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>();
+			while (offset < streamers.Count)
 			{
-				List<TwitchStreamer> streamersSubset = streamers.Take(100).ToList();
-				streamers.RemoveRange(0, streamersSubset.Count);
-				List<string> streamerIds = streamersSubset.Select(x => x.TwitchOwner).ToList();
-				streams.AddRange(await _api.GetStreams(streamerIds));
+				streams.AddRange(await _api.GetStreams(streamers.Select(x => x.TwitchOwner).Skip(offset).Take(100).ToList()));
+				offset += 100;
 			}
 			return streams;
 		}
@@ -86,16 +99,27 @@ namespace TwitchBotManager
 		{
 			IList<ContainerListResponse> containers = await _dockerClient.Containers.ListContainersAsync(new ContainersListParameters()
 			{
-				All = true
+				All = true,
+				Filters = new Dictionary<string, IDictionary<string, bool>>
+				{
+					{
+						"name",
+						new Dictionary<string, bool>
+						{
+							{ "twitch-chat-parser-*", true}
+						}
+					}
+
+				}
 			});
-			foreach(ContainerListResponse container in containers)
-			{
+
+			await Task.WhenAll(containers.Select(async container => {
 				TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream stream = streams.Where(x => x.UserId == container.Names[0].Replace("/twitch-chat-parser-", "")).FirstOrDefault();
-				if ( stream == null && container.State == "running")
+				if (stream == null && container.State == "running")
 				{
 					await StopContainer(container.Names[0].Replace("/twitch-chat-parser-", ""));
 				}
-			}
+			}));
 
 			foreach (TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream stream in streams)
 			{
@@ -118,11 +142,11 @@ namespace TwitchBotManager
 			{
 				Name = $"twitch-chat-parser-{userId}",
 				Image = "twitch-chat-parser",
-				Env = new List<string> { "TZ=Europe/Paris" },
 				Cmd = new List<string> { userId },
 				HostConfig = new HostConfig
 				{
-					Binds = new [] { @"c:/logs:/app/logs"}
+					Binds = new [] { @"c:/logs:/app/logs"},
+					Memory = 250000000
 				}
 			});
 		}

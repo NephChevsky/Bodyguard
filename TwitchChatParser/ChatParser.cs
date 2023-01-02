@@ -42,7 +42,6 @@ namespace TwitchChatParser
 			_chat.Client.OnUserTimedout += Client_OnUserTimedout;
 			_chat.Client.OnMessageCleared += Client_OnMessageCleared;
 			_chat.Client.OnConnectionError += Client_OnConnectionError;
-			_chat.Client.OnLog += Client_OnLog;
 			_chat.Connect();
 			return Task.CompletedTask;
 		}
@@ -55,7 +54,6 @@ namespace TwitchChatParser
 			_chat.Client.OnUserTimedout -= Client_OnUserTimedout;
 			_chat.Client.OnMessageCleared -= Client_OnMessageCleared;
 			_chat.Client.OnConnectionError -= Client_OnConnectionError;
-			_chat.Client.OnLog -= Client_OnLog;
 			_chat.Disconnect();
 
 			DeletePendingClearedMessages(true);
@@ -116,12 +114,6 @@ namespace TwitchChatParser
 		private void Client_OnConnectionError(object sender, OnConnectionErrorArgs e)
 		{
 			_logger.LogError($"Connection error triggered in chat bot for {_streamer.Name}: {e.Error.Message}");
-			//_chat.Client.Reconnect();
-		}
-
-		private void Client_OnLog(object sender, OnLogArgs e)
-		{
-			_logger.LogInformation($"log: {e.Data}");
 		}
 
 		private void DeletePendingClearedMessages(object state)
