@@ -146,7 +146,7 @@ namespace TwitchBotManager
 				HostConfig = new HostConfig
 				{
 					Binds = new [] { @"c:/logs:/app/logs"},
-					Memory = 250000000
+					Memory = 200000000
 				}
 			});
 		}
