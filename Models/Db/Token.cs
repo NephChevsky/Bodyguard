@@ -12,6 +12,7 @@ namespace Models.Db
 		public Guid Id { get; set; }
 		public string Name { get; set; }
 		public string Value { get; set; }
+		public bool Locked { get; set; }
 		public DateTime CreationDateTime { get; set; }
 		public DateTime? LastModificationDateTime { get; set; }
 
@@ -20,6 +21,7 @@ namespace Models.Db
 			Id = Guid.NewGuid();
 			Name = string.Empty;
 			Value = String.Empty;
+			Locked = false;
 			CreationDateTime = new DateTime();
 			LastModificationDateTime = null;
 		}
@@ -29,6 +31,7 @@ namespace Models.Db
 			Id = Guid.NewGuid();
 			Name = name;
 			Value = String.Empty;
+			Locked = false;
 			CreationDateTime = new DateTime();
 			LastModificationDateTime = null;
 		}

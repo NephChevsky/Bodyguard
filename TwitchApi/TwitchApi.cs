@@ -1,4 +1,5 @@
-﻿using Db;
+﻿using Azure;
+using Db;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -20,18 +21,18 @@ namespace TwitchApi
 
 		private Timer RefreshTokenTimer;
 
-		private readonly IAsyncPolicy<dynamic> _retryPolicy = Policy.WrapAsync(Policy<dynamic>.Handle<Exception>().FallbackAsync(fallbackValue: null, onFallbackAsync: (result, context) =>
-		{
-			_logger.LogWarning($"Couldn't reach Twitch API, returning null");
-			return Task.CompletedTask;
-		}), Policy<dynamic>.Handle<Exception>()
-			.WaitAndRetryAsync(1, retry =>
+		private readonly IAsyncPolicy<dynamic> _retryPolicy = Policy.WrapAsync(
+			Policy<dynamic>.Handle<Exception>().FallbackAsync(fallbackValue: null, onFallbackAsync: (exception, context) =>
 			{
-				return TimeSpan.FromMilliseconds(500);
-			}, (exception, timespan) =>
+				_logger.LogError($"Couldn't reach Twitch API: {exception.Exception.Message}");
+				_logger.LogError($"Stack:\r\n{exception.Exception.StackTrace}");
+				_logger.LogError($"Returning null");
+				return Task.CompletedTask;
+			}),
+			Policy<dynamic>.Handle<Exception>().WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (exception, timespan) =>
 			{
 				_logger.LogWarning($"Twitch API call failed: {exception.Exception.Message}");
-				_logger.LogWarning($"Retrying in {timespan.Milliseconds} ms");
+				_logger.LogWarning($"Retrying in {timespan.Seconds} seconds");
 			}));
 
 		public TwitchApi(IConfiguration configuration, ILogger<TwitchApi> logger)
@@ -50,26 +51,40 @@ namespace TwitchApi
 		{
 			using (BodyguardDbContext db = new())
 			{
-				TimeSpan firstRefresh = TimeSpan.FromSeconds(4 * 60 * 60 - 10 * 60);
+				TimeSpan firstRefresh = TimeSpan.FromSeconds(4 * 60 * 60);
 				bool shouldRefreshToken = false;
-				Token accessToken = db.Tokens.Where(x => x.Name == "TwitchApiAccessToken").SingleOrDefault();
+				Token accessToken;
+				do
+				{
+					accessToken = db.Tokens.Where(x => x.Name == "TwitchApiAccessToken").SingleOrDefault();
+					if (accessToken != null && accessToken.Locked)
+					{
+						Task.Delay(1000).Wait();
+					}
+				} while (accessToken != null && accessToken.Locked && accessToken.LastModificationDateTime < DateTime.Now.AddSeconds(-30));
 				if (accessToken != null)
 				{
-					ValidateAccessTokenResponse response = await api.Auth.ValidateAccessTokenAsync(accessToken.Value);
+					ValidateAccessTokenResponse response = await _retryPolicy.ExecuteAsync(async () =>
+					{
+						return await api.Auth.ValidateAccessTokenAsync(accessToken.Value);
+					}); 
 					if (response == null)
 					{
 						shouldRefreshToken = true;
+						accessToken.Locked = true;
 					}
 					else
 					{
-						firstRefresh = TimeSpan.FromSeconds(Math.Max(0, response.ExpiresIn - 600));
+						firstRefresh = TimeSpan.FromSeconds(response.ExpiresIn - 30 * 60);
 					}
 				}
 				else
 				{
 					accessToken = new Token("TwitchApiAccessToken");
-					db.Tokens.Add(accessToken);
+					accessToken.Locked = true;
 					shouldRefreshToken = true;
+					db.Tokens.Add(accessToken);
+					db.SaveChanges();
 				}
 
 				if (shouldRefreshToken)
@@ -77,9 +92,20 @@ namespace TwitchApi
 					Token refreshToken = db.Tokens.Where(x => x.Name == "TwitchApiRefreshToken").SingleOrDefault();
 					if (refreshToken != null)
 					{
-						RefreshResponse newToken = await api.Auth.RefreshAuthTokenAsync(refreshToken.Value, _settings.Twitch.ClientSecret);
-						accessToken.Value = newToken.AccessToken;
-						refreshToken.Value = newToken.RefreshToken;
+						RefreshResponse newToken = await _retryPolicy.ExecuteAsync(async () =>
+						{
+							return await api.Auth.RefreshAuthTokenAsync(refreshToken.Value, _settings.Twitch.ClientSecret);
+						});
+						if (newToken != null)
+						{
+							accessToken.Value = newToken.AccessToken;
+							refreshToken.Value = newToken.RefreshToken;
+							firstRefresh = TimeSpan.FromSeconds(newToken.ExpiresIn - 30 * 60);
+						}
+						else
+						{
+							throw new Exception("Couldn't refresh Twitch API Token");
+						}
 					}
 					else
 					{
@@ -100,10 +126,11 @@ namespace TwitchApi
 						accessToken.Value = resp.AccessToken;
 						refreshToken.Value = resp.RefreshToken;
 					}
-					db.SaveChanges();
 				}
+				accessToken.Locked = false;
+				db.SaveChanges();
 				api.Settings.AccessToken = accessToken.Value;
-				RefreshTokenTimer = new Timer(RefreshTokenAsync, null, firstRefresh, TimeSpan.FromSeconds(4 * 60 * 60 - 600));
+				RefreshTokenTimer = new Timer(RefreshTokenAsync, null, firstRefresh, TimeSpan.FromSeconds(4 * 60 * 60));
 			}
 		}
 
