@@ -12,7 +12,7 @@
 	<ItemGroup>
 		<PackageReference Include="Docker.DotNet" Version="3.125.12" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0" />
-		<PackageReference Include="NLog.Extensions.Logging" Version="5.2.0" />
+		<PackageReference Include="NLog.Extensions.Logging" Version="5.2.1" />
 	</ItemGroup>
 
 	<ItemGroup>
