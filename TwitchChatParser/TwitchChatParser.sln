@@ -5,6 +5,12 @@ VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwitchChatParser", "TwitchChatParser.csproj", "{A7EDC886-FE70-4F80-953A-B4B6CDC30BA9}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwitchApi", "..\TwitchApi\TwitchApi.csproj", "{73078818-4B21-460B-A3E8-24602BD453C6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Models", "..\Models\Models.csproj", "{4CB39B17-1B3F-4F1F-A7BF-49D709F4C691}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwitchChat", "..\TwitchChat\TwitchChat.csproj", "{C9BB1087-3AD6-48FA-B325-9F50384C53CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +21,18 @@ Global
 		{A7EDC886-FE70-4F80-953A-B4B6CDC30BA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7EDC886-FE70-4F80-953A-B4B6CDC30BA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A7EDC886-FE70-4F80-953A-B4B6CDC30BA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73078818-4B21-460B-A3E8-24602BD453C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73078818-4B21-460B-A3E8-24602BD453C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73078818-4B21-460B-A3E8-24602BD453C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73078818-4B21-460B-A3E8-24602BD453C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CB39B17-1B3F-4F1F-A7BF-49D709F4C691}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CB39B17-1B3F-4F1F-A7BF-49D709F4C691}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CB39B17-1B3F-4F1F-A7BF-49D709F4C691}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CB39B17-1B3F-4F1F-A7BF-49D709F4C691}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9BB1087-3AD6-48FA-B325-9F50384C53CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9BB1087-3AD6-48FA-B325-9F50384C53CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9BB1087-3AD6-48FA-B325-9F50384C53CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9BB1087-3AD6-48FA-B325-9F50384C53CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
