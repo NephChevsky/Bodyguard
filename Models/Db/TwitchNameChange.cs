@@ -23,8 +23,8 @@ namespace Models.Db
 
 		public TwitchNameChange(string userId, string name)
 		{
-			TwitchOwner = string.Empty;
-			Name = string.Empty;
+			TwitchOwner = userId;
+			Name = name;
 		}
 	}
 }
