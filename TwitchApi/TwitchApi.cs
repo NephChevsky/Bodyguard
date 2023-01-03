@@ -52,46 +52,16 @@ namespace TwitchApi
 			using (BodyguardDbContext db = new())
 			{
 				TimeSpan firstRefresh = TimeSpan.FromSeconds(4 * 60 * 60);
-				bool shouldRefreshToken = false;
-				Token accessToken;
-				do
-				{
-					accessToken = db.Tokens.Where(x => x.Name == "TwitchApiAccessToken").SingleOrDefault();
-					if (accessToken != null && accessToken.Locked)
-					{
-						Task.Delay(1000).Wait();
-					}
-				} while (accessToken != null && accessToken.Locked && accessToken.LastModificationDateTime < DateTime.Now.AddSeconds(-30));
+				Token accessToken = db.Tokens.Where(x => x.Name == "TwitchApiAccessToken").SingleOrDefault();
 				if (accessToken != null)
 				{
 					ValidateAccessTokenResponse response = await _retryPolicy.ExecuteAsync(async () =>
 					{
 						return await api.Auth.ValidateAccessTokenAsync(accessToken.Value);
 					}); 
-					if (response == null)
+					if (response == null || (response != null && response.ExpiresIn <= 30 * 60))
 					{
-						shouldRefreshToken = true;
-						accessToken.Locked = true;
-					}
-					else
-					{
-						firstRefresh = TimeSpan.FromSeconds(response.ExpiresIn - 30 * 60);
-					}
-				}
-				else
-				{
-					accessToken = new Token("TwitchApiAccessToken");
-					accessToken.Locked = true;
-					shouldRefreshToken = true;
-					db.Tokens.Add(accessToken);
-					db.SaveChanges();
-				}
-
-				if (shouldRefreshToken)
-				{
-					Token refreshToken = db.Tokens.Where(x => x.Name == "TwitchApiRefreshToken").SingleOrDefault();
-					if (refreshToken != null)
-					{
+						Token refreshToken = db.Tokens.Where(x => x.Name == "TwitchApiRefreshToken").Single();
 						RefreshResponse newToken = await _retryPolicy.ExecuteAsync(async () =>
 						{
 							return await api.Auth.RefreshAuthTokenAsync(refreshToken.Value, _settings.Twitch.ClientSecret);
@@ -100,7 +70,8 @@ namespace TwitchApi
 						{
 							accessToken.Value = newToken.AccessToken;
 							refreshToken.Value = newToken.RefreshToken;
-							firstRefresh = TimeSpan.FromSeconds(newToken.ExpiresIn - 30 * 60);
+							firstRefresh = TimeSpan.FromSeconds(newToken.ExpiresIn - 20 * 60);
+							db.SaveChanges();
 						}
 						else
 						{
@@ -109,26 +80,28 @@ namespace TwitchApi
 					}
 					else
 					{
-						refreshToken = new Token("TwitchApiRefreshToken");
-						db.Tokens.Add(refreshToken);
-
-						var server = new WebServer(_settings.Twitch.RedirectUri);
-
-						List<string> scopes = new List<string>();
-						scopes.Add("chat:read");
-
-						string uri = $"https://id.twitch.tv/oauth2/authorize?client_id={_settings.Twitch.ClientId}&redirect_uri={System.Web.HttpUtility.UrlEncode(_settings.Twitch.RedirectUri)}&response_type=code&scope={String.Join('+', scopes)}";
-						_logger.LogWarning($"Please authorize here: {uri}");
-
-						string auth = await server.Listen();
-
-						AuthCodeResponse resp = await api.Auth.GetAccessTokenFromCodeAsync(auth, _settings.Twitch.ClientSecret, _settings.Twitch.RedirectUri);
-						accessToken.Value = resp.AccessToken;
-						refreshToken.Value = resp.RefreshToken;
+						firstRefresh = TimeSpan.FromSeconds(response.ExpiresIn - 20 * 60);
 					}
 				}
-				accessToken.Locked = false;
-				db.SaveChanges();
+				else
+				{
+					var server = new WebServer(_settings.Twitch.RedirectUri);
+
+					List<string> scopes = new List<string>();
+					scopes.Add("chat:read");
+					string uri = $"https://id.twitch.tv/oauth2/authorize?client_id={_settings.Twitch.ClientId}&redirect_uri={System.Web.HttpUtility.UrlEncode(_settings.Twitch.RedirectUri)}&response_type=code&scope={String.Join('+', scopes)}";
+					_logger.LogWarning($"Please authorize here: {uri}");
+
+					string auth = await server.Listen();
+
+					AuthCodeResponse resp = await api.Auth.GetAccessTokenFromCodeAsync(auth, _settings.Twitch.ClientSecret, _settings.Twitch.RedirectUri);
+					Token refreshToken = new Token("TwitchApiRefreshToken");
+					accessToken.Value = resp.AccessToken;
+					refreshToken.Value = resp.RefreshToken;
+					db.Tokens.Add(accessToken);
+					db.Tokens.Add(refreshToken);
+					db.SaveChanges();
+				}
 				api.Settings.AccessToken = accessToken.Value;
 				RefreshTokenTimer = new Timer(RefreshTokenAsync, null, firstRefresh, TimeSpan.FromSeconds(4 * 60 * 60));
 			}
