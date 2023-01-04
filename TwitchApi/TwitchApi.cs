@@ -6,6 +6,7 @@ using Models;
 using Models.Db;
 using NLog.Extensions.Logging;
 using Polly;
+using System.Collections.Generic;
 using TwitchLib.Api;
 using TwitchLib.Api.Auth;
 using TwitchLib.Api.Helix.Models.Streams.GetStreams;
@@ -205,12 +206,28 @@ namespace TwitchApi
 
 		public async Task<List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>> GetStreams(List<string> streamerIds = null, List<string> languages = null, List<string> gameIds = null)
 		{
-			GetStreamsResponse response = await api.Helix.Streams.GetStreamsAsync(null, 100, gameIds, languages, streamerIds);
-			if (response != null)
+			List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = new List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>();
+			GetStreamsResponse response;
+			do
 			{
-				return response.Streams.ToList();
-			}
-			return new List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>();
+				response = await _retryPolicy.ExecuteAsync(async () =>
+				{
+					return await api.Helix.Streams.GetStreamsAsync(null, 100, gameIds, languages, streamerIds != null ? streamerIds.Take(100).ToList() : null);
+				});
+
+				if (streamerIds != null)
+				{
+					streamerIds = streamerIds.Skip(100).ToList();
+				}
+
+				if (response != null)
+				{
+					streams.AddRange(response.Streams);
+				}
+				
+			} while (response != null && streamerIds != null && streamerIds.Count != 0);
+			
+			return streams;
 		}
 	}
 }

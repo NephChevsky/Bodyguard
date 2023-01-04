@@ -9,6 +9,7 @@ using Models.Db;
 using System.Runtime.InteropServices;
 using System;
 using System.ComponentModel;
+using TwitchLib.Api.Helix;
 
 namespace TwitchBotManager
 {
@@ -43,12 +44,13 @@ namespace TwitchBotManager
 					using (BodyguardDbContext db = new())
 					{
 						await FindNewStreamers(new List<string> { "fr" });
-						await FindNewStreamers(new List<string> { "fr" }, new List<string> { "30921" });
+						List<string> gamesId = new List<string> { "30921" };
+						await FindNewStreamers(new List<string> { "fr" }, gamesId);
 
 						List<TwitchStreamer> streamers = db.TwitchStreamers.ToList();
 
-						List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = await GetTwitchStreams(streamers);
-
+						List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = await _api.GetStreams(streamers.Select(x => x.TwitchOwner).ToList());
+						streams = FilterOnViewerThreshold(streams, gamesId);
 						await StartAndStopInstances(streams);
 					}
 
@@ -68,31 +70,17 @@ namespace TwitchBotManager
 		public async Task FindNewStreamers(List<string> languages, List<string> games = null)
 		{
 			List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = await _api.GetStreams(null, languages, games);
-			if (games != null)
-			{
-				streams = streams.Where(x => x.ViewerCount >= 10).ToList();
-			}
-			else
-			{
-				streams = streams.Where(x => x.ViewerCount >= 1000).ToList();
-			}
-			
+			streams = FilterOnViewerThreshold(streams, games);
+
 			foreach (TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream stream in streams)
 			{
 				await _api.GetOrCreateStreamerByUsername(stream.UserLogin);
 			}
 		}
 
-		public async Task<List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>> GetTwitchStreams(List<TwitchStreamer> streamers)
+		public List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> FilterOnViewerThreshold(List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams, List<string> games)
 		{
-			int offset = 0;
-			List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = new List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>();
-			while (offset < streamers.Count)
-			{
-				streams.AddRange(await _api.GetStreams(streamers.Select(x => x.TwitchOwner).Skip(offset).Take(100).ToList()));
-				offset += 100;
-			}
-			return streams;
+			return streams.Where(x => x.ViewerCount >= 1000 || (games != null && games.Contains(x.GameId) && x.ViewerCount >= 10)).ToList();
 		}
 
 		public async Task StartAndStopInstances(List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams)
