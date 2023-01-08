@@ -43,14 +43,10 @@ namespace TwitchBotManager
 				{
 					using (BodyguardDbContext db = new())
 					{
-						await FindNewStreamers(new List<string> { "fr" });
 						List<string> gamesId = new List<string> { "30921" };
-						await FindNewStreamers(new List<string> { "fr" }, gamesId);
-
-						List<TwitchStreamer> streamers = db.TwitchStreamers.ToList();
-
-						List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = await _api.GetStreams(streamers.Select(x => x.TwitchOwner).ToList());
-						streams = FilterOnViewerThreshold(streams, gamesId);
+						List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = await FindNewStreamers(new List<string> { "fr" }, gamesId);
+						streams.AddRange(await FindNewStreamers(new List<string> { "fr" }));
+						streams = streams.Where(x => x.ViewerCount >= 10).ToList();
 						await StartAndStopInstances(streams);
 					}
 
@@ -67,20 +63,15 @@ namespace TwitchBotManager
 			_logger.LogInformation("Bot manager stopped successfully");
 		}
 
-		public async Task FindNewStreamers(List<string> languages, List<string> games = null)
+		public async Task<List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream>> FindNewStreamers(List<string> languages, List<string> games = null)
 		{
 			List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams = await _api.GetStreams(null, languages, games);
-			streams = FilterOnViewerThreshold(streams, games);
-
 			foreach (TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream stream in streams)
 			{
 				await _api.GetOrCreateStreamerByUsername(stream.UserLogin);
 			}
-		}
 
-		public List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> FilterOnViewerThreshold(List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams, List<string> games)
-		{
-			return streams.Where(x => x.ViewerCount >= 1000 || (games != null && games.Contains(x.GameId) && x.ViewerCount >= 10)).ToList();
+			return streams;
 		}
 
 		public async Task StartAndStopInstances(List<TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream> streams)
@@ -112,7 +103,7 @@ namespace TwitchBotManager
 			foreach (TwitchLib.Api.Helix.Models.Streams.GetStreams.Stream stream in streams)
 			{
 				ContainerListResponse container = containers.Where(x => x.Names.Contains($"/twitch-chat-parser-{stream.UserId}")).FirstOrDefault();
-				if (container == null || container.State != "running")
+				if (containers.Where(x => x.State == "running").Count() < _settings.Twitch.MaxBotInstances && container == null || container.State != "running")
 				{
 					if (container == null)
 					{
@@ -134,7 +125,7 @@ namespace TwitchBotManager
 				HostConfig = new HostConfig
 				{
 					Binds = new [] { @"c:/logs:/app/logs"},
-					Memory = 200000000
+					Memory = 160000000
 				}
 			});
 		}

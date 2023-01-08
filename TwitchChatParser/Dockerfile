@@ -1,5 +1,6 @@
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 ENV TZ=Europe/Paris
+ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
 WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build

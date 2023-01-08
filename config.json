@@ -3,7 +3,7 @@
 		"Twitch": {
 			"BotName": "neph_bot",
 			"RedirectUri": "http://localhost:8079/redirect/",
-			"MaxBotInstances": 10
+			"MaxBotInstances": 100
 		}
 	}
 }
