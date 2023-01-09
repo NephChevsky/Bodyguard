@@ -91,15 +91,17 @@ namespace TwitchBotManager
 				}
 			});
 
+			int startedInstances = containers.Where(x => x.State == "running").ToList().Count;
+
 			await Task.WhenAll(containers.Select(async container => {
 				string streamerId = streamerIds.Where(x => x == container.Names[0].Replace("/twitch-chat-parser-", "")).FirstOrDefault();
 				if (streamerId == null && container.State == "running")
 				{
 					await StopContainer(container.Names[0].Replace("/twitch-chat-parser-", ""));
+					startedInstances--;
 				}
 			}));
-
-			int startedInstances = containers.Where(x => x.State == "running").ToList().Count;
+			
 			foreach (string streamerId in streamerIds)
 			{
 				ContainerListResponse container = containers.Where(x => x.Names[0] == $"/twitch-chat-parser-{streamerId}").FirstOrDefault();
